@@ -26,8 +26,8 @@ describe('fsm', () => {
       type B2 = typeof s1 extends State<'a' | 'b'> ? true : false;
       type B3 = typeof s1 extends State<'d'> ? true : false;
       const _a: B1 = true;
-      // @ts-expect-error
-      const _a2: B1 = false; // checks the assertion itself
+      // @ts-expect-error checks the assertion itself
+      const _a2: B1 = false;
       const _b: B2 = false;
       const _c: B3 = false;
     });
@@ -35,7 +35,7 @@ describe('fsm', () => {
       push([{
         kind: 'd',
         duration: 1,
-      // @ts-expect-error
+      // @ts-expect-error type 'd' won't be accepted here
       }])(empty<'a' | 'b' | 'c'>());
     })
   });
