@@ -58,6 +58,7 @@ export const pop = <Kind extends string>(state: State<Kind>): State<Kind> => {
 
 export const tick = (step: number/*no check, because 0s and negatives are all right, theoretically*/) => <Kind extends string>(state: State<Kind>): State<Kind> => {
   if (step === 0) return state; // noop
+  if (isEmpty(state)) return state; // noop
   const duration = state.duration - step;
   return (duration < 0)/*handle overshoots*/ ? tick(-duration)(pop(state)) : Object.freeze({
     ...state,

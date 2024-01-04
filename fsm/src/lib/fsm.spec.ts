@@ -95,8 +95,15 @@ describe('fsm', () => {
     });
     it('overticks too much', () => {
       const s0 = empty<'a'>();
-      const s1 = pop(s0);
-      expect(s1).toBe(s0);
+      const s1 = push([{
+        kind: 'a',
+        duration: 2,
+      }, {
+        kind: 'b',
+        duration: 3,
+      }])(s0);
+      const s2 = tick(6)(s1);
+      expect(s2).toEqual(empty());
     });
   });
 });
