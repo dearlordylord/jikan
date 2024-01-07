@@ -16,8 +16,10 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
+      "@jikan/adapters": ["adapters/src/index.ts"],
       "@jikan/facade": ["facade/src/index.ts"],
       "@jikan/fsm": ["fsm/src/index.ts"],
+      "@jikan/test-utils": ["test-utils/src/index.ts"],
       "@jikan/utils": ["utils/src/index.ts"]
     }
   },

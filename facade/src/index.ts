@@ -11,3 +11,5 @@ export {
   restart,
   reset,
 } from '@jikan/fsm';
+
+export { StatefulSimulation as Timer } from '@jikan/adapters';

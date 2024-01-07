@@ -1,0 +1,30 @@
+{
+  "name": "adapters",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "adapters/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/adapters",
+        "main": "adapters/src/index.ts",
+        "tsConfig": "adapters/tsconfig.lib.json",
+        "assets": ["adapters/*.md"]
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"]
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "adapters/jest.config.ts"
+      }
+    }
+  },
+  "tags": []
+}

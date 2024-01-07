@@ -1,0 +1,30 @@
+{
+  "name": "test-utils",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "test-utils/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/test-utils",
+        "main": "test-utils/src/index.ts",
+        "tsConfig": "test-utils/tsconfig.lib.json",
+        "assets": ["test-utils/*.md"]
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"]
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "test-utils/jest.config.ts"
+      }
+    }
+  },
+  "tags": []
+}

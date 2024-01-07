@@ -24,6 +24,12 @@ const showQueueItem = <Kind extends string>(
   queueItem: QueueItem<Kind>
 ): string => `${queueItem.kind}(${queueItem.duration})`;
 
+// not entirely reliable (same kind+duration don't mean same item in general) but good enough for our purposes
+export const eqQueueItem =
+  <Kind extends string>(b: QueueItem<Kind>) =>
+  (a: QueueItem<Kind>): boolean =>
+    a.kind === b.kind && a.duration === b.duration;
+
 // fifo
 type Queue<Kind extends string = string> = readonly QueueItem<Kind>[];
 
@@ -118,7 +124,11 @@ export const pop = <Kind extends string>(
 
 export const currentNE = <Kind extends string>(
   state: NonEmptyState<Kind>
-): QueueItem<Kind> => lastNEA(state.queue);
+): QueueItem<Kind> => ({
+  ...lastNEA(state.queue),
+  // users are interested in current left duration, not the programmed one
+  duration: state.duration,
+});
 
 export const current = <Kind extends string>(
   state: State<Kind>

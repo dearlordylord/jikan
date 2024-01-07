@@ -9,46 +9,10 @@ import {
   showPrintDuration0QueueItemError,
   State,
   tick,
+  eqQueueItem,
 } from './fsm';
 import fc from 'fast-check';
-
-const BASIC_EXERCISE_PROGRAM = (() => {
-  const ROUND_TYPES = ['warmup', 'exercise', 'rest', 'cooldown'] as const;
-  type RoundType = (typeof ROUND_TYPES)[number];
-  type ExerciseQueueItem = QueueItem<RoundType>;
-  const ONE_MINUTE = 60 * 1000;
-  const TOTAL_ROUNDS = 10;
-  const WARMUP_DURATION = 5 * ONE_MINUTE;
-  const EXERCISE_DURATION = 3 * ONE_MINUTE;
-  // noinspection PointlessArithmeticExpressionJS
-  const REST_DURATION = 1 * ONE_MINUTE;
-  const COOLDOWN_DURATION = 5 * ONE_MINUTE;
-  const DURATIONS: {
-    [K in RoundType]: number;
-  } = {
-    warmup: WARMUP_DURATION,
-    exercise: EXERCISE_DURATION,
-    rest: REST_DURATION,
-    cooldown: COOLDOWN_DURATION,
-  };
-  return [...Array(TOTAL_ROUNDS + 2 /*warmup/cooldown*/).keys()]
-    .map(
-      (i): RoundType =>
-        i === 0
-          ? 'warmup'
-          : i === TOTAL_ROUNDS + 1
-          ? 'cooldown'
-          : i % 2 === 1
-          ? 'exercise'
-          : 'rest'
-    )
-    .map(
-      (kind): ExerciseQueueItem => ({
-        kind,
-        duration: DURATIONS[kind],
-      })
-    );
-})();
+import { BASIC_EXERCISE_PROGRAM } from '@jikan/test-utils';
 
 describe('fsm', () => {
   describe('push', () => {
@@ -305,6 +269,30 @@ describe('fsm', () => {
           naiveSimulationTest(program);
         })
       );
+    });
+  });
+  describe('eqQueueItem', () => {
+    it('works', () => {
+      const a: QueueItem<'a'> = {
+        kind: 'a',
+        duration: 1,
+      };
+      const b: QueueItem<'a'> = {
+        kind: 'a',
+        duration: 1,
+      };
+      const c: QueueItem<'a'> = {
+        kind: 'a',
+        duration: 2,
+      };
+      const d: QueueItem<'b'> = {
+        kind: 'b',
+        duration: 1,
+      };
+      expect(eqQueueItem(b)(a)).toBe(true);
+      expect(eqQueueItem(c)(a)).toBe(false);
+      // @ts-expect-error type mismatch
+      expect(eqQueueItem(d)(a)).toBe(false);
     });
   });
 });
