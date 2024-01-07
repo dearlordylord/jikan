@@ -11,8 +11,13 @@
         "outputPath": "dist/facade",
         "main": "facade/src/index.ts",
         "tsConfig": "facade/tsconfig.lib.json",
-        "assets": ["facade/*.md"]
+        "assets": ["facade/*.md"],
+        "external": "none"
       }
+    },
+    "publish": {
+      "command": "node tools/scripts/publish.mjs facade {args.ver} {args.tag} {args.otp}",
+      "dependsOn": ["build"]
     },
     "lint": {
       "executor": "@nx/eslint:lint",

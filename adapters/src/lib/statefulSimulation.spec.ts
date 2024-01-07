@@ -1,7 +1,7 @@
 jest.useFakeTimers();
 
 import { StatefulSimulation } from './statefulSimulation';
-import { BASIC_EXERCISE_PROGRAM } from '@jikan/test-utils';
+import { BASIC_EXERCISE_PROGRAM } from '@jikan0/test-utils';
 
 describe('statefulSimulation', () => {
   it('runs a basic program', () => {

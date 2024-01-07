@@ -8,8 +8,8 @@ import {
   isEmpty,
   current,
   eqQueueItem,
-} from '@jikan/fsm';
-import { assertExists } from '@jikan/utils';
+} from '@jikan0/fsm';
+import { assertExists } from '@jikan0/utils';
 
 const DEFAULT_OPTS = { leniency: 100 /*ms*/, stopOnEmpty: true } as const;
 const SUSPICIOUSLY_TOO_MANY_LISTENERS = 100;

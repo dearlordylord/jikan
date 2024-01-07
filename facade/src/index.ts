@@ -10,6 +10,6 @@ export {
   pop,
   restart,
   reset,
-} from '@jikan/fsm';
+} from '@jikan0/fsm';
 
-export { StatefulSimulation as Timer } from '@jikan/adapters';
+export { StatefulSimulation as Timer } from '@jikan0/adapters';

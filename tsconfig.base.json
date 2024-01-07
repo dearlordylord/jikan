@@ -16,11 +16,11 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@jikan/adapters": ["adapters/src/index.ts"],
-      "@jikan/facade": ["facade/src/index.ts"],
-      "@jikan/fsm": ["fsm/src/index.ts"],
-      "@jikan/test-utils": ["test-utils/src/index.ts"],
-      "@jikan/utils": ["utils/src/index.ts"]
+      "@jikan0/adapters": ["adapters/src/index.ts"],
+      "@jikan0/fsm": ["fsm/src/index.ts"],
+      "@jikan0/test-utils": ["test-utils/src/index.ts"],
+      "@jikan0/utils": ["utils/src/index.ts"],
+      "jikan0": ["facade/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

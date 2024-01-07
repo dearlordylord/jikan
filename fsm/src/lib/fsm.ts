@@ -1,4 +1,4 @@
-import { assertRNEA, assertTrue, isRNEA, last, lastNEA } from '@jikan/utils';
+import { assertRNEA, assertTrue, isRNEA, last, lastNEA } from '@jikan0/utils';
 
 let duration0QueueItemErrorShown = false;
 const printDuration0QueueItemError = (queueItem: QueueItem<string>) => {

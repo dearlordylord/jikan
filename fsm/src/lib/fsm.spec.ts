@@ -12,7 +12,7 @@ import {
   eqQueueItem,
 } from './fsm';
 import fc from 'fast-check';
-import { BASIC_EXERCISE_PROGRAM } from '@jikan/test-utils';
+import { BASIC_EXERCISE_PROGRAM } from '@jikan0/test-utils';
 
 describe('fsm', () => {
   describe('push', () => {
