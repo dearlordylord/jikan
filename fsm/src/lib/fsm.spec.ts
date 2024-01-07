@@ -1,5 +1,4 @@
 import {
-  current,
   currentNE,
   empty,
   isEmpty,
@@ -174,6 +173,7 @@ describe('fsm', () => {
     const naiveSimulationTest = (program: QueueItem<string>[]) => {
       const [state, runLog] = program.reduce<[State<string>, QueueItem<string>[]]>(([state, queueItems], queueItem) => {
         const [state_, queueItems_] = tick(state.duration)(state);
+        expect(queueItem).toEqual(queueItems_[0]);
         return [state_, [...queueItems, ...queueItems_]];
       }, [push(program)(empty()), []]);
       expect(state).toEqual(empty());
