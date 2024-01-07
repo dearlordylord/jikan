@@ -91,8 +91,9 @@ describe('fsm', () => {
         {
           kind: 'd',
           duration: 1,
-          // @ts-expect-error type 'd' won't be accepted here
+
         },
+        // @ts-expect-error type 'd' won't be accepted here
       ])(empty<'a' | 'b' | 'c'>());
     });
     it('ignores <= 0 duration items, warns once', () => {
