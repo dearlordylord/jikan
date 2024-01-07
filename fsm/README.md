@@ -1,11 +1,3 @@
-# fsm
+core logic for timers
 
-This library was generated with [Nx](https://nx.dev).
-
-## Building
-
-Run `nx build fsm` to build the library.
-
-## Running unit tests
-
-Run `nx test fsm` to execute the unit tests via [Jest](https://jestjs.io).
+implemented as a queue of intervals and a tick(number)

@@ -1,0 +1,30 @@
+{
+  "name": "facade",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "facade/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/facade",
+        "main": "facade/src/index.ts",
+        "tsConfig": "facade/tsconfig.lib.json",
+        "assets": ["facade/*.md"]
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"]
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "facade/jest.config.ts"
+      }
+    }
+  },
+  "tags": []
+}

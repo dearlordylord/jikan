@@ -4,6 +4,7 @@ import {
   isEmpty,
   pop,
   push,
+  restart,
   QueueItem,
   showPrintDuration0QueueItemError,
   State,
@@ -91,7 +92,6 @@ describe('fsm', () => {
         {
           kind: 'd',
           duration: 1,
-
         },
         // @ts-expect-error type 'd' won't be accepted here
       ])(empty<'a' | 'b' | 'c'>());
@@ -204,6 +204,48 @@ describe('fsm', () => {
       ])(s0);
       const [s2] = tick(6)(s1);
       expect(s2).toEqual(empty());
+    });
+  });
+  describe('restart', () => {
+    it('noops', () => {
+      const s0 = empty<'a'>();
+      const s1 = push([
+        {
+          kind: 'a',
+          duration: 2,
+        },
+        {
+          kind: 'b',
+          duration: 3,
+        },
+      ])(s0);
+      expect(s1.duration).toBe(2);
+      const s2 = restart(s1);
+      expect(s2.duration).toBe(2);
+    });
+    it('noops on state0', () => {
+      const s0 = empty<'a'>();
+      expect(s0.duration).toBe(0);
+      const s1 = restart(s0);
+      expect(s1.duration).toBe(0);
+    });
+    it('restarts the current item', () => {
+      const s0 = empty<'a'>();
+      const s1 = push([
+        {
+          kind: 'a',
+          duration: 2,
+        },
+        {
+          kind: 'b',
+          duration: 3,
+        },
+      ])(s0);
+      expect(s1.duration).toBe(2);
+      const s2 = tick(1)(s1)[0];
+      expect(s2.duration).toBe(1);
+      const s3 = restart(s2);
+      expect(s3.duration).toBe(2);
     });
   });
   describe('raw simulation', () => {

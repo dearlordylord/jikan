@@ -16,6 +16,7 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
+      "@jikan/facade": ["facade/src/index.ts"],
       "@jikan/fsm": ["fsm/src/index.ts"],
       "@jikan/utils": ["utils/src/index.ts"]
     }
