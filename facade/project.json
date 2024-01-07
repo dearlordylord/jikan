@@ -11,8 +11,7 @@
         "outputPath": "dist/facade",
         "main": "facade/src/index.ts",
         "tsConfig": "facade/tsconfig.lib.json",
-        "assets": ["facade/*.md"],
-        "external": "none"
+        "assets": ["facade/*.md"]
       }
     },
     "publish": {

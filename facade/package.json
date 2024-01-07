@@ -1,8 +1,13 @@
 {
   "name": "jikan0",
-  "version": "0.0.4",
+  "version": "0.0.7",
   "dependencies": {
-    "tslib": "^2.3.0"
+    "tslib": "^2.3.0",
+    "@jikan0/fsm": "*",
+    "@jikan0/adapters": "*"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "type": "commonjs",
   "main": "./src/index.js",

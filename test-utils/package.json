@@ -4,8 +4,10 @@
   "dependencies": {
     "tslib": "^2.3.0"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "commonjs",
   "main": "./src/index.js",
-  "typings": "./src/index.d.ts",
-  "private": false
+  "typings": "./src/index.d.ts"
 }

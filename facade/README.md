@@ -10,8 +10,10 @@ TODO more docs
 
 Npm package exposed API
 
+`npx nx release p` - will release dependencies
+
 `npx nx build facade`
 
 `node tools/scripts/publish.mjs facade 0.0.4 latest`
 
-https://nx.dev/nx-api/js/executors/tsc external: none used to inline dependencies.
+used https://github.com/nrwl/nx/issues/4620#issuecomment-1546737883 as build solution for now
