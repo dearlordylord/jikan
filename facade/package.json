@@ -2,9 +2,7 @@
   "name": "jikan0",
   "version": "0.0.4",
   "dependencies": {
-    "tslib": "^2.3.0",
-    "@jikan0/fsm": "*",
-    "@jikan0/adapters": "*"
+    "tslib": "^2.3.0"
   },
   "type": "commonjs",
   "main": "./src/index.js",
