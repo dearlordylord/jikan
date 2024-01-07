@@ -57,4 +57,6 @@ try {
 }
 
 // Execute "npm publish" to publish
-execSync(`npm publish --access public --tag ${tag} ${otp ? `--otp ${otp}` : ''}`);
+execSync(
+  `npm publish --access public --tag ${tag} ${otp ? `--otp ${otp}` : ''}`
+);
