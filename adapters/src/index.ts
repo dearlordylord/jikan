@@ -1,1 +1,4 @@
-export { StatefulSimulation, StatefulSimulationOpts } from './lib/statefulSimulation';
+export {
+  StatefulSimulation,
+  StatefulSimulationOpts,
+} from './lib/statefulSimulation';

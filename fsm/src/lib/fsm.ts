@@ -1,5 +1,4 @@
 import { assertRNEA, assertTrue, isRNEA, last, lastNEA } from '@jikan0/utils';
-import { K } from 'vitest/dist/reporters-5f784f42';
 
 let duration0QueueItemErrorShown = false;
 const printDuration0QueueItemError = (queueItem: QueueItem<string>) => {

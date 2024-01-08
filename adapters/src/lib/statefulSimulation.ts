@@ -74,7 +74,10 @@ export class StatefulSimulation<QueueItemType extends string = string> {
         withCurrent: true,
       });
   }
-  #changeListeners = new Map<number, (next: QueueItem<QueueItemType> | null) => void>();
+  #changeListeners = new Map<
+    number,
+    (next: QueueItem<QueueItemType> | null) => void
+  >();
   #nextListenerId = 1;
 
   onChange = (
@@ -143,4 +146,4 @@ export class StatefulSimulation<QueueItemType extends string = string> {
   current = () => {
     return current(this.#state);
   };
-};
+}
