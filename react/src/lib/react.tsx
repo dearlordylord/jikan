@@ -37,10 +37,10 @@ export const makeUseTimer =
     const [queueItem, setQueueItem] = useState<QueueItem<Kind> | null>(null);
     // watch until unmount
     useEffect(() => sim.onChange(setQueueItem), []);
-    // restart on program change
+    // stops on program change
     useEffect(() => {
       const sim = assertExists(ref.current);
-      sim.reset();
+      sim.stop();
       sim.push(program);
     }, [programHash]);
     const start = useMemo(() => sim.start /*to keep it bound*/, []);
