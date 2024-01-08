@@ -12,6 +12,7 @@ import {
 import { assertExists } from '@jikan0/utils';
 
 const DEFAULT_OPTS = { leniency: 100 /*ms*/, stopOnEmpty: true } as const;
+export type StatefulSimulationOpts = typeof DEFAULT_OPTS;
 const SUSPICIOUSLY_TOO_MANY_LISTENERS = 100;
 const SUSPICIOUSLY_TOO_MANY_LISTENERS_MSG = (n: number) =>
   `Suspiciously many listeners: ${n}. Please check that you clean up listener functions calling the cleanup function returned from onChange`;
@@ -35,7 +36,7 @@ const areQueueItemsEqual = <QueueItemType extends string>(
   return eqQueueItem(b)(a);
 };
 
-export const StatefulSimulation = class<QueueItemType extends string = string> {
+export class StatefulSimulation<QueueItemType extends string = string> {
   // set only thru #setState
   #state = empty<QueueItemType>();
   #setState = (state1: State<QueueItemType>) => {
@@ -73,11 +74,11 @@ export const StatefulSimulation = class<QueueItemType extends string = string> {
         withCurrent: true,
       });
   }
-  #changeListeners = new Map<number, (next: QueueItem | null) => void>();
+  #changeListeners = new Map<number, (next: QueueItem<QueueItemType> | null) => void>();
   #nextListenerId = 1;
 
   onChange = (
-    f: (next: QueueItem | null) => void,
+    f: (next: QueueItem<QueueItemType> | null) => void,
     opts: {
       withCurrent: boolean;
     } = {
@@ -102,7 +103,7 @@ export const StatefulSimulation = class<QueueItemType extends string = string> {
     this.#setState(state1);
     return queueItems;
   };
-  push = (queueItems: QueueItem<QueueItemType>[]) => {
+  push = (queueItems: readonly QueueItem<QueueItemType>[]) => {
     this.#setState(push(queueItems)(this.#state));
   };
   restart = () => {

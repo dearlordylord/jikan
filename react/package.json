@@ -1,0 +1,15 @@
+{
+  "name": "@jikan0/react",
+  "version": "0.0.1",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./index.mjs",
+      "require": "./index.js"
+    }
+  },
+  "dependencies": {
+    "@jikan0/adapters": "^1.2.0"
+  }
+}
