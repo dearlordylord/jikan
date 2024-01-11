@@ -33,7 +33,7 @@ export const makeUseTimer =
     }
     const sim = assertExists(ref.current);
     // cleanup on unmount
-    useEffect(() => () => sim.stop(), []);
+    useEffect(() => () => sim.stop(), [sim]);
     const [queueItem, setQueueItem] = useState<QueueItem<Kind> | null>(null);
     // watch until unmount
     useEffect(() => sim.onChange(setQueueItem), []);

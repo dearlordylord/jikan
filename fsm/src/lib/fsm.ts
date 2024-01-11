@@ -1,30 +1,22 @@
-import { assertRNEA, assertTrue, isRNEA, last, lastNEA } from '@jikan0/utils';
+import {
+  assertTrue,
+  concatRNEA,
+  isRNEA,
+  last,
+  lastRNEA,
+  ReadonlyNonEmptyArray,
+} from '@jikan0/utils';
+import { printDuration0QueueItemError } from './warnings';
 
-let duration0QueueItemErrorShown = false;
-const printDuration0QueueItemError = (queueItem: QueueItem<string>) => {
-  if (!duration0QueueItemErrorShown) {
-    duration0QueueItemErrorShown = true;
-    console.warn(showPrintDuration0QueueItemError(queueItem));
-  }
-};
-
-export const showPrintDuration0QueueItemError = (
-  queueItem: QueueItem<string>
-): string =>
-  `duration <= 0 queue item provided: ${showQueueItem(
-    queueItem
-  )}; this is not an error, but it is not recommended; the item will be ignored`;
-
-export type QueueItem<Kind extends string = string> = {
+export type QueueItem<Kind extends string = string> = Readonly<{
   kind: Kind;
   duration: number;
-};
+}>;
 
-export type Program<Kind extends string = string> = readonly QueueItem<Kind>[];
+// fifo
+type Queue<Kind extends string = string> = ReadonlyArray<QueueItem<Kind>>;
 
-const showQueueItem = <Kind extends string>(
-  queueItem: QueueItem<Kind>
-): string => `${queueItem.kind}(${queueItem.duration})`;
+export type Program<Kind extends string = string> = Queue<Kind>;
 
 // not entirely reliable (same kind+duration don't mean same item in general) but good enough for our purposes
 export const eqQueueItem =
@@ -32,33 +24,27 @@ export const eqQueueItem =
   (a: QueueItem<Kind>): boolean =>
     a.kind === b.kind && a.duration === b.duration;
 
-// fifo
-type Queue<Kind extends string = string> = readonly QueueItem<Kind>[];
-
-export type EmptyState = {
+export type EmptyState = Readonly<{
   duration: 0;
   queue: readonly [];
-};
+}>;
 
-export type NonEmptyState<Kind extends string> = {
+export type NonEmptyState<Kind extends string> = Readonly<{
   // <= duration of the last element in the queue (current item)
   // purposely duplicate to make it possible to restart an item
   // it also easier/performant to operate with micro time ticks
   duration: number;
-  queue: readonly [QueueItem<Kind>, ...Queue<Kind>];
-};
+  queue: ReadonlyNonEmptyArray<QueueItem<Kind>>;
+}>;
 
 export type State<Kind extends string = string> =
   | NonEmptyState<Kind>
   | EmptyState;
 
-const empty_: EmptyState = {
+export const empty: EmptyState = Object.freeze({
   duration: 0,
-  queue: Object.freeze([]),
-};
-
-export const empty = <Kind extends string>(): State<Kind> =>
-  empty_ as State<Kind>;
+  queue: [] as const,
+});
 
 export const isEmpty = <Kind extends string>(
   state: State<Kind>
@@ -70,11 +56,11 @@ export const restart = <Kind extends string>(state: State<Kind>): State<Kind> =>
     ? state
     : {
         queue: state.queue,
-        duration: lastNEA(state.queue).duration,
+        duration: lastRNEA(state.queue).duration,
       };
 
 export const reset = <Kind extends string>(_state: State<Kind>): State<Kind> =>
-  empty();
+  empty;
 
 export const push =
   <Kind_ extends string>(qx_: Queue<Kind_>) =>
@@ -85,22 +71,27 @@ export const push =
       /*just to cast to RA*/ qx_
         .filter((x) => {
           if (x.duration > 0) return true;
-          printDuration0QueueItemError(x);
+          // eslint-disable-next-line functional/no-expression-statements
+          printDuration0QueueItemError(x) satisfies void;
           return false;
         })
         .reverse()
     );
     if (!isRNEA(qx)) return state; // noop
-    return Object.freeze({
-      duration:
-        state.duration &&
-        assertTrue(
-          /*defensive; duration 0 means queue is []*/ isRNEA(state.queue)
-        )
-          ? state.duration
-          : lastNEA(qx).duration,
-      queue: assertRNEA(Object.freeze([...qx, ...state.queue])),
-    });
+    return isEmpty(state)
+      ? {
+          duration: lastRNEA(qx).duration,
+          queue: qx,
+        }
+      : state.duration === 0
+      ? {
+          duration: lastRNEA(qx).duration,
+          queue: concatRNEA(state.queue)(qx),
+        }
+      : {
+          duration: state.duration,
+          queue: concatRNEA(state.queue)(qx),
+        };
   };
 
 const popQueue = <Kind extends string>(
@@ -114,10 +105,10 @@ export const pop = <Kind extends string>(
   state: State<Kind>
 ): [State<Kind>, QueueItem<Kind> | null] => {
   const [queue, queueItem] = popQueue(state.queue);
-  if (!isRNEA(queue)) return [empty(), queueItem];
+  if (!isRNEA(queue)) return [empty, queueItem];
   return [
     Object.freeze({
-      duration: lastNEA(queue).duration,
+      duration: lastRNEA(queue).duration,
       queue,
     }),
     queueItem,
@@ -127,7 +118,7 @@ export const pop = <Kind extends string>(
 export const currentNE = <Kind extends string>(
   state: NonEmptyState<Kind>
 ): QueueItem<Kind> => ({
-  ...lastNEA(state.queue),
+  ...lastRNEA(state.queue),
   // users are interested in current left duration, not the programmed one
   duration: state.duration,
 });
@@ -140,13 +131,13 @@ export const tick =
   (
     step: number /*no check, because 0s and negatives are all right, theoretically*/
   ) =>
-  <Kind extends string>(
-    state: State<Kind>
-  ): [State<Kind>, QueueItem<Kind>[]] => {
+  <Kind extends string>(state: State<Kind>): [State<Kind>, Queue<Kind>] => {
     const tick_ = <Kind extends string>(
       step: number,
       state: State<Kind>,
+      // eslint-disable-next-line functional/prefer-immutable-types
       acc: QueueItem<Kind>[]
+      // eslint-disable-next-line functional/prefer-immutable-types
     ): [State<Kind>, QueueItem<Kind>[]] => {
       if (step === 0) return [state, acc]; // noop
       if (isEmpty(state)) return [state, acc]; // noop
@@ -154,6 +145,7 @@ export const tick =
       return duration <= 0 /*handle overshoots*/
         ? (() => {
             const [state1, queueItem] = pop(state);
+            // eslint-disable-next-line functional/no-conditional-statements, functional/no-expression-statements, functional/immutable-data
             if (queueItem !== null) acc.push(queueItem);
             return tick_(-duration, state1, acc);
           })()

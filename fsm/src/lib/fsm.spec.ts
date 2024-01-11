@@ -6,18 +6,18 @@ import {
   push,
   restart,
   QueueItem,
-  showPrintDuration0QueueItemError,
   State,
   tick,
   eqQueueItem,
 } from './fsm';
 import fc from 'fast-check';
 import { BASIC_EXERCISE_PROGRAM } from '@jikan0/test-utils';
+import { showPrintDuration0QueueItemError } from './warnings';
 
 describe('fsm', () => {
   describe('push', () => {
     it('pushes', () => {
-      const s0 = empty<'a'>();
+      const s0 = empty as State<'a'>;
       const s1 = push([
         {
           kind: 'a',
@@ -35,7 +35,7 @@ describe('fsm', () => {
       } satisfies State);
     });
     it('type is extendable', () => {
-      const s0 = empty<'a' | 'b' | 'c'>();
+      const s0 = empty as State<'a' | 'b' | 'c'>;
       const s1 = push([
         {
           kind: 'a',
@@ -58,17 +58,17 @@ describe('fsm', () => {
           duration: 1,
         },
         // @ts-expect-error type 'd' won't be accepted here
-      ])(empty<'a' | 'b' | 'c'>());
+      ])(empty as State<'a' | 'b' | 'c'>);
     });
     it('ignores <= 0 duration items, warns once', () => {
-      const s0 = empty<'a'>();
+      const s0 = empty as State<'a'>;
       const consoleSpy = jest.spyOn(console, 'warn');
       const queueItem1: QueueItem<'a'> = {
         kind: 'a',
         duration: 0,
       };
       const s1 = push([queueItem1])(s0);
-      expect(s1).toEqual(empty());
+      expect(s1).toEqual(empty);
       expect(consoleSpy).toHaveBeenCalledWith(
         showPrintDuration0QueueItemError(queueItem1)
       );
@@ -77,13 +77,13 @@ describe('fsm', () => {
         duration: -1,
       };
       const s2 = push([queueItem2])(s0);
-      expect(s2).toEqual(empty());
+      expect(s2).toEqual(empty);
       expect(consoleSpy).toHaveBeenCalledTimes(1 /*warn only once*/);
     });
   });
   describe('pop', () => {
     it('pops', () => {
-      const s0 = empty<'a'>();
+      const s0 = empty as State<'a'>;
       const s1 = push([
         {
           kind: 'a',
@@ -95,14 +95,14 @@ describe('fsm', () => {
       expect(isEmpty(s2)).toBe(true);
     });
     it('noops', () => {
-      const s0 = empty<'a'>();
+      const s0 = empty as State<'a'>;
       const [s1] = pop(s0);
       expect(s1).toBe(s0);
     });
   });
   describe('tick', () => {
     it('ticks', () => {
-      const s0 = empty<'a'>();
+      const s0 = empty as State<'a'>;
       const s1 = push([
         {
           kind: 'a',
@@ -114,7 +114,7 @@ describe('fsm', () => {
       expect(queueItems.length).toBe(0);
     });
     it('noops', () => {
-      const s0 = empty<'a'>();
+      const s0 = empty as State<'a'>;
       const s1 = push([
         {
           kind: 'a',
@@ -126,7 +126,7 @@ describe('fsm', () => {
       expect(queueItems.length).toBe(0);
     });
     it('overticks', () => {
-      const s0 = empty<'a'>();
+      const s0 = empty as State<'a'>;
       const s1 = push([
         {
           kind: 'a',
@@ -155,7 +155,7 @@ describe('fsm', () => {
       ]);
     });
     it('overticks too much', () => {
-      const s0 = empty<'a'>();
+      const s0 = empty as State<'a'>;
       const s1 = push([
         {
           kind: 'a',
@@ -167,12 +167,12 @@ describe('fsm', () => {
         },
       ])(s0);
       const [s2] = tick(6)(s1);
-      expect(s2).toEqual(empty());
+      expect(s2).toEqual(empty);
     });
   });
   describe('restart', () => {
     it('noops', () => {
-      const s0 = empty<'a'>();
+      const s0 = empty as State<'a'>;
       const s1 = push([
         {
           kind: 'a',
@@ -188,13 +188,13 @@ describe('fsm', () => {
       expect(s2.duration).toBe(2);
     });
     it('noops on state0', () => {
-      const s0 = empty<'a'>();
+      const s0 = empty as State<'a'>;
       expect(s0.duration).toBe(0);
       const s1 = restart(s0);
       expect(s1.duration).toBe(0);
     });
     it('restarts the current item', () => {
-      const s0 = empty<'a'>();
+      const s0 = empty as State<'a'>;
       const s1 = push([
         {
           kind: 'a',
@@ -222,16 +222,16 @@ describe('fsm', () => {
           expect(queueItem).toEqual(queueItems_[0]);
           return [state_, [...queueItems, ...queueItems_]];
         },
-        [push(program)(empty()), []]
+        [push(program)(empty), []]
       );
-      expect(state).toEqual(empty());
+      expect(state).toEqual(empty);
       expect(runLog).toEqual(program);
     };
     const customTimedSimulationTest =
       <T extends string>(step: (currentItem: QueueItem<T>) => number) =>
       (program: QueueItem<T>[]) => {
         let runLog: readonly QueueItem<T>[] = [];
-        let state = push(program)(empty<T>());
+        let state = push(program)(empty as State<T>);
         while (!isEmpty(state)) {
           const queueItem = currentNE(state);
           const [state1, queueItems] = tick(step(queueItem))(state);

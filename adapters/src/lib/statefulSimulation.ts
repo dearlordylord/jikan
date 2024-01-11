@@ -39,7 +39,7 @@ const areQueueItemsEqual = <QueueItemType extends string>(
 export class StatefulSimulation<QueueItemType extends string = string> {
   // set only thru #setState
   #state = empty<QueueItemType>();
-  #setState = (state1: State<QueueItemType>) => {
+  readonly #setState = (state1: State<QueueItemType>) => {
     const queueItem = current(this.#state);
     const nextQueueItem = current(state1);
     this.#state = state1;
@@ -74,7 +74,7 @@ export class StatefulSimulation<QueueItemType extends string = string> {
         withCurrent: true,
       });
   }
-  #changeListeners = new Map<
+  readonly #changeListeners = new Map<
     number,
     (next: QueueItem<QueueItemType> | null) => void
   >();
@@ -97,11 +97,11 @@ export class StatefulSimulation<QueueItemType extends string = string> {
       this.#changeListeners.delete(listenerId);
     };
   };
-  #reportQueueItem = (next: QueueItem<QueueItemType> | null) => {
+  readonly #reportQueueItem = (next: QueueItem<QueueItemType> | null) => {
     // called before #state change; TODO don't depend on execution order as much
     this.#changeListeners.forEach((f) => f(next));
   };
-  #tick = (step: number) => {
+  readonly #tick = (step: number) => {
     const [state1, queueItems] = tick(step)(this.#state);
     this.#setState(state1);
     return queueItems;

@@ -1,3 +1,8 @@
+export type ReadonlyNonEmptyArray<A> = ReadonlyArray<A> &
+  Readonly<{
+    0: A;
+  }>;
+
 // RNEA is read only non-empty array
 export const isRNEA = <T>(a: readonly T[]): a is readonly [T, ...T[]] =>
   a.length > 0;
@@ -8,7 +13,19 @@ export const assertRNEA = <T>(a: readonly T[]): readonly [T, ...T[]] => {
 
 export const last = <T>(a: readonly T[] | T[]): T | null =>
   isRNEA(a) ? a[a.length - 1] : null;
-export const lastNEA = <T>(a: readonly [T, ...T[]]): T => a[a.length - 1];
+export const lastRNEA = <T>(a: ReadonlyNonEmptyArray<T>): T => a[a.length - 1];
+
+export function concatRNEA<B>(
+  second: ReadonlyNonEmptyArray<B>
+): <A>(first: ReadonlyArray<A>) => ReadonlyNonEmptyArray<A | B>;
+export function concatRNEA<B>(
+  second: ReadonlyArray<B>
+): <A>(first: ReadonlyNonEmptyArray<A>) => ReadonlyNonEmptyArray<A | B>;
+export function concatRNEA<B>(
+  second: ReadonlyArray<B>
+): <A>(first: ReadonlyNonEmptyArray<A>) => ReadonlyArray<A | B> {
+  return <A>(first: ReadonlyNonEmptyArray<A | B>) => first.concat(second);
+}
 
 export const assertTrue = (b: boolean): true => {
   if (!b) throw new Error('panic! assertion true failed');
