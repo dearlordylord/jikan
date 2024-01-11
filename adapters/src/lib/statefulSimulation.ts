@@ -38,7 +38,7 @@ const areQueueItemsEqual = <QueueItemType extends string>(
 
 export class StatefulSimulation<QueueItemType extends string = string> {
   // set only thru #setState
-  #state = empty<QueueItemType>();
+  #state = empty as State<QueueItemType>;
   readonly #setState = (state1: State<QueueItemType>) => {
     const queueItem = current(this.#state);
     const nextQueueItem = current(state1);
