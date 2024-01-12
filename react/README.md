@@ -1,7 +1,1 @@
-# react
-
-This library was generated with [Nx](https://nx.dev).
-
-## Running unit tests
-
-Run `nx test react` to execute the unit tests via [Vitest](https://vitest.dev/).
+react hook for stateful OO fsm adapters of timer fsm
