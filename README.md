@@ -1,4 +1,3 @@
-
 exercise timers as immutable state machines on Typescript
 
 [fsm README.md](fsm/README.md) - core logic
