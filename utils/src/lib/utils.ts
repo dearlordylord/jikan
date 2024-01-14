@@ -11,6 +11,11 @@ export const assertRNEA = <T>(a: readonly T[]): readonly [T, ...T[]] => {
   return a;
 };
 
+export const isEmptyRA = <T>(a: readonly T[]): a is readonly [] =>
+  a.length === 0;
+export const isNonEmptyRA = <T>(a: readonly T[]): a is readonly [T, ...T[]] =>
+  !isEmptyRA(a);
+
 export const last = <T>(a: readonly T[] | T[]): T | null =>
   isRNEA(a) ? a[a.length - 1] : null;
 export const lastRNEA = <T>(a: ReadonlyNonEmptyArray<T>): T => a[a.length - 1];
@@ -26,6 +31,11 @@ export function concatRNEA<B>(
 ): <A>(first: ReadonlyNonEmptyArray<A>) => ReadonlyArray<A | B> {
   return <A>(first: ReadonlyNonEmptyArray<A | B>) => first.concat(second);
 }
+
+export const reverseRNEA = <A>(
+  as: ReadonlyNonEmptyArray<A>
+): ReadonlyNonEmptyArray<A> =>
+  as.length === 1 ? as : [lastRNEA(as), ...as.slice(0, -1).reverse()];
 
 export const assertTrue = (b: boolean): true => {
   if (!b) throw new Error('panic! assertion true failed');
@@ -55,3 +65,9 @@ const cyrb53 = (str: string, seed = 0) => {
 };
 
 export const stringHashCode = cyrb53;
+
+export const mapSnd: <B, C>(f: (e: B) => C) => <A>(fa: [A, B]) => [A, C] =
+  (f) => (fa) =>
+    [fst(fa), f(snd(fa))];
+export const fst = <A, B>(t: readonly [A, B]): A => t[0];
+export const snd = <A, B>(t: readonly [A, B]): B => t[1];

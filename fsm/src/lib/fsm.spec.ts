@@ -9,6 +9,7 @@ import {
   State,
   tick,
   eqQueueItem,
+  Program,
 } from './fsm';
 import fc from 'fast-check';
 import { BASIC_EXERCISE_PROGRAM } from '@jikan0/test-utils';
@@ -213,7 +214,7 @@ describe('fsm', () => {
     });
   });
   describe('raw simulation', () => {
-    const naiveSimulationTest = (program: QueueItem<string>[]) => {
+    const naiveSimulationTest = (program: Program) => {
       const [state, runLog] = program.reduce<
         [State<string>, QueueItem<string>[]]
       >(
@@ -229,7 +230,7 @@ describe('fsm', () => {
     };
     const customTimedSimulationTest =
       <T extends string>(step: (currentItem: QueueItem<T>) => number) =>
-      (program: QueueItem<T>[]) => {
+      (program: Program<T>) => {
         let runLog: readonly QueueItem<T>[] = [];
         let state = push(program)(empty as State<T>);
         while (!isEmpty(state)) {
@@ -262,11 +263,14 @@ describe('fsm', () => {
             ...BASIC_EXERCISE_PROGRAM.map(({ kind }) => kind)
           ),
           duration: fc.nat(1000 * 60 * 60 * 24).map((n) => n + 1 /*no 0s*/),
-        })
+        }),
+        {
+          minLength: 1,
+        }
       );
       fc.assert(
         fc.property(randomizedExercise, (program) => {
-          naiveSimulationTest(program);
+          naiveSimulationTest(program as unknown as Program);
         })
       );
     });

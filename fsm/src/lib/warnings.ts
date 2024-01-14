@@ -8,14 +8,17 @@ const showQueueItem = <Kind extends string>(
 ): string => `${queueItem.kind}(${queueItem.duration})`;
 
 export const showPrintDuration0QueueItemError = (
-  queueItem: QueueItem<string>
+  queueItem: QueueItem<string>,
+  isWarning = true
 ): string =>
-  `duration <= 0 queue item provided: ${showQueueItem(
-    queueItem
-  )}; this is not an error, but it is not recommended; the item will be ignored`;
+  `duration <= 0 queue item provided: ${showQueueItem(queueItem)}${
+    isWarning
+      ? `; this is not an error, but it is not recommended; the item will be ignored`
+      : ''
+  }`;
 
 // eslint-disable-next-line functional/no-return-void
-export const printDuration0QueueItemError = (queueItem: QueueItem<string>) => {
+export const printDuration0QueueItemError = (queueItem: QueueItem) => {
   // eslint-disable-next-line functional/no-conditional-statements
   if (!duration0QueueItemErrorShown) {
     // eslint-disable-next-line functional/no-expression-statements

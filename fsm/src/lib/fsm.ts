@@ -1,9 +1,12 @@
 import {
   assertTrue,
   concatRNEA,
+  isNonEmptyRA,
   isRNEA,
   last,
   lastRNEA,
+  mapSnd,
+  pipe,
   ReadonlyNonEmptyArray,
 } from '@jikan0/utils';
 import { printDuration0QueueItemError } from './warnings';
@@ -13,10 +16,16 @@ export type QueueItem<Kind extends string = string> = Readonly<{
   duration: number;
 }>;
 
+type NonEmptyQueue<Kind extends string = string> = ReadonlyNonEmptyArray<
+  QueueItem<Kind>
+>;
+type EmptyQueue = readonly [];
 // fifo
-type Queue<Kind extends string = string> = ReadonlyArray<QueueItem<Kind>>;
+type Queue<Kind extends string = string> = EmptyQueue | NonEmptyQueue<Kind>;
 
-export type Program<Kind extends string = string> = Queue<Kind>;
+const emptyQueue: EmptyQueue = [] as const;
+
+export type Program<Kind extends string = string> = NonEmptyQueue<Kind>;
 
 // not entirely reliable (same kind+duration don't mean same item in general) but good enough for our purposes
 export const eqQueueItem =
@@ -26,10 +35,10 @@ export const eqQueueItem =
 
 export type EmptyState = Readonly<{
   duration: 0;
-  queue: readonly [];
+  queue: EmptyQueue;
 }>;
 
-export type NonEmptyState<Kind extends string> = Readonly<{
+export type NonEmptyState<Kind extends string = string> = Readonly<{
   // <= duration of the last element in the queue (current item)
   // purposely duplicate to make it possible to restart an item
   // it also easier/performant to operate with micro time ticks
@@ -43,7 +52,7 @@ export type State<Kind extends string = string> =
 
 export const empty: EmptyState = Object.freeze({
   duration: 0,
-  queue: [] as const,
+  queue: emptyQueue,
 });
 
 export const isEmpty = <Kind extends string>(
@@ -59,7 +68,7 @@ export const restart = <Kind extends string>(state: State<Kind>): State<Kind> =>
         duration: lastRNEA(state.queue).duration,
       };
 
-export const reset = <Kind extends string>(_state: State<Kind>): State<Kind> =>
+export const reset = <Kind extends string>(_state: State<Kind>): EmptyState =>
   empty;
 
 export const push =
@@ -94,10 +103,20 @@ export const push =
         };
   };
 
+const isEmptyQueue = (queue: Queue): queue is EmptyQueue => queue.length === 0;
+
+const isOneElementQueue = <Kind extends string>(
+  queue: Queue<Kind>
+): queue is [QueueItem<Kind>] => queue.length === 1;
+
 const popQueue = <Kind extends string>(
   queue: Queue<Kind>
 ): [Queue<Kind>, QueueItem<Kind> | null] => [
-  Object.freeze(queue.slice(0, -1)),
+  Object.freeze(
+    isEmptyQueue(queue) || isOneElementQueue(queue)
+      ? emptyQueue
+      : [queue[0], ...queue.slice(1, -1)]
+  ),
   last(queue),
 ];
 
@@ -131,7 +150,7 @@ export const tick =
   (
     step: number /*no check, because 0s and negatives are all right, theoretically*/
   ) =>
-  <Kind extends string>(state: State<Kind>): [State<Kind>, Queue<Kind>] => {
+  <Kind extends string>(state: State<Kind>): [typeof state, Queue<Kind>] => {
     const tick_ = <Kind extends string>(
       step: number,
       state: State<Kind>,
@@ -159,5 +178,8 @@ export const tick =
           ];
     };
 
-    return tick_(step, state, []);
+    return pipe(
+      tick_(step, state, []),
+      mapSnd((acc_) => (isNonEmptyRA(acc_) ? Object.freeze(acc_) : emptyQueue))
+    );
   };
