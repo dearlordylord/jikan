@@ -7,7 +7,7 @@ import {
   State,
   isEmpty,
   current,
-  eqQueueItem,
+  eqQueueItem, Program
 } from '@jikan0/fsm';
 import { assertExists } from '@jikan0/utils';
 
@@ -55,7 +55,7 @@ export class StatefulSimulation<QueueItemType extends string = string> {
     () /*: this is {#intervalHandle: number} - not with ts classes.*/ =>
       this.#intervalHandle !== null;
   constructor(
-    queue: QueueItem<QueueItemType>[],
+    queue: Program<QueueItemType>,
     opts: {
       leniency?: number;
       onChange?: (next: QueueItem | null) => void;
@@ -106,7 +106,7 @@ export class StatefulSimulation<QueueItemType extends string = string> {
     this.#setState(state1);
     return queueItems;
   };
-  push = (queueItems: readonly QueueItem<QueueItemType>[]) => {
+  push = (queueItems: Program<QueueItemType>) => {
     this.#setState(push(queueItems)(this.#state));
   };
   restart = () => {
