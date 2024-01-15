@@ -7,9 +7,10 @@ import {
   State,
   isEmpty,
   current,
-  eqQueueItem, Program
+  eqQueueItem,
+  Program,
 } from '@jikan0/fsm';
-import { assertExists } from '@jikan0/utils';
+import { assertExists, isEmptyRA } from '@jikan0/utils';
 
 const DEFAULT_OPTS = { leniency: 100 /*ms*/, stopOnEmpty: true } as const;
 export type StatefulSimulationOpts = typeof DEFAULT_OPTS;
@@ -55,7 +56,7 @@ export class StatefulSimulation<QueueItemType extends string = string> {
     () /*: this is {#intervalHandle: number} - not with ts classes.*/ =>
       this.#intervalHandle !== null;
   constructor(
-    queue: Program<QueueItemType>,
+    queue: Program<QueueItemType> | readonly [],
     opts: {
       leniency?: number;
       onChange?: (next: QueueItem | null) => void;
@@ -64,7 +65,7 @@ export class StatefulSimulation<QueueItemType extends string = string> {
   ) {
     const opts_ = { ...DEFAULT_OPTS, ...opts };
     if (opts_.leniency <= 0) throw new Error('leniency must be positive');
-    this.push(queue);
+    if (!isEmptyRA(queue)) this.push(queue);
     this.#state0 = this.#state;
     this.leniency = opts_.leniency;
     this.stopOnEmpty = opts_.stopOnEmpty;
