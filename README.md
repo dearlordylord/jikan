@@ -10,4 +10,4 @@ TODO keywords: immutable/functional, (optionally) deterministic, 0 dependency, t
 
 TODO reference implementations: web, react-native
 
-TODO publish properly (when NX really supports it)
+TODO publish properly (when NX really supports it) - or move to pnpm workspaces, publish from there

@@ -50,6 +50,25 @@ describe('ui', () => {
         )
       ).toEqual('stopped');
     });
+    it('resuming keeps the state as it was at paused', () => {
+      const stateStarted = pipe(state0, reduce(StartClickedEvent()));
+      if (stateStarted.running !== 'running')
+        throw new Error('panic! expected running state');
+      expect(stateStarted.fsmState.duration).toBe(3000);
+      expect(
+        pipe(
+          stateStarted,
+          reduce(TimePassedEvent(BigInt(1000))),
+          reduce(PauseClickedEvent()),
+          reduce(ContinueClickedEvent()),
+          (s) => {
+            if (s.running !== 'running')
+              throw new Error('panic! expected running state');
+            return s.fsmState.duration;
+          }
+        )
+      ).toBe(2000);
+    });
   });
   describe('view', () => {
     it('provides a start button when stopped', () => {

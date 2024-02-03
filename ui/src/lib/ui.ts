@@ -123,7 +123,7 @@ type ViewActiveValue = {
   continueButton: Button<ContinueClickedEvent>;
 };
 
-type State<M extends Mode = Mode> = {
+export type State<M extends Mode = Mode> = {
   mode: ModeSelectorState<M>;
 } & (
   | {
@@ -231,11 +231,12 @@ const simpleModeSelectorToProgram = (
     ])
   ) as ProgramPerMode[SimpleMode];
 
-const simpleModeQueueToStats = (
-  q: NonEmptyFsmState<SimpleProgramStep>['queue']
+const simpleModeStateToStats = (
+  s: NonEmptyFsmState<SimpleProgramStep>
 ): TimerStatsCurrent<SimpleProgramStep> => ({
-  current: BigInt(q.filter((x) => x.kind === EXERCISE_STEP).length),
-  kind: lastRNEA(q).kind,
+  current: BigInt(s.queue.filter((x) => x.kind === EXERCISE_STEP).length),
+  kind: lastRNEA(s.queue).kind,
+  left: BigInt(s.duration),
 });
 
 export type ModeSelectorSettingsViewValue = ModeSelectorSettingsValue;
@@ -254,6 +255,7 @@ const modeSelectorSettingsViewActions: ModeSelectorSettingsViewActions = {
 type TimerStatsCurrent<RoundKind extends string = string> = {
   current: bigint;
   kind: RoundKind;
+  left: bigint;
 };
 
 type TimerStats<RoundKind extends string = string> = {
@@ -303,9 +305,9 @@ export const view = <M extends Mode = Mode>(state: State<M>): ViewValue => {
     mode: state.mode.selected,
     ...state.mode.settings[state.mode.selected],
   };
+
   switch (state.running) {
     case RUNNING_STATE_RUNNING: {
-      const s = state;
       return {
         running: state.running,
         startButton: {
@@ -327,7 +329,7 @@ export const view = <M extends Mode = Mode>(state: State<M>): ViewValue => {
         timerStats: {
           // dupe but it's a "view"!
           rounds: modeSelectorValue.rounds,
-          round: simpleModeQueueToStats(s.fsmState.queue),
+          round: simpleModeStateToStats(state.fsmState),
         },
       };
     }
