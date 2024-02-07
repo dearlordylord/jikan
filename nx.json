@@ -58,10 +58,18 @@
   "generators": {
     "@nx/react": {
       "application": {
+        "style": "styled-components",
+        "linter": "eslint",
+        "bundler": "vite",
         "babel": true
       },
       "library": {
+        "style": "styled-components",
+        "linter": "eslint",
         "unitTestRunner": "jest"
+      },
+      "component": {
+        "style": "styled-components"
       }
     }
   }

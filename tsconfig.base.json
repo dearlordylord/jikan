@@ -19,6 +19,7 @@
       "@jikan0/adapters": ["adapters/src/index.ts"],
       "@jikan0/fsm": ["fsm/src/index.ts"],
       "@jikan0/react": ["react/src/index.ts"],
+      "@jikan0/reference-react": ["reference-react/src/index.ts"],
       "@jikan0/test-utils": ["test-utils/src/index.ts"],
       "@jikan0/ui": ["ui/src/index.ts"],
       "@jikan0/utils": ["utils/src/index.ts"],

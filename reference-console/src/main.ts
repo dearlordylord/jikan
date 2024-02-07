@@ -1,5 +1,5 @@
 import * as ui from '@jikan0/ui';
-import { state0, ViewValue } from '@jikan0/ui';
+import { ViewValue } from '@jikan0/ui';
 import terminal from 'terminal-kit';
 const term = terminal.terminal;
 
@@ -38,7 +38,7 @@ const EXIT = 'exit' as const;
 const moveCursorToMenu = () => term.moveTo(...MENU_LINE);
 const moveCursorToInfo = () => term.moveTo(...INFO_LINE);
 
-let state = state0;
+let state = ui.state0;
 
 const renderMenu = () => {
   moveCursorToMenu();
