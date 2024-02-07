@@ -95,11 +95,13 @@ type RunningStateRunning = typeof RUNNING_STATE_RUNNING;
 type RunningStatePaused = typeof RUNNING_STATE_PAUSED;
 type RunningStateStopped = typeof RUNNING_STATE_STOPPED;
 
-const _RUNNING_STATES = [
+const RUNNING_STATES = [
   RUNNING_STATE_RUNNING,
   RUNNING_STATE_PAUSED,
   RUNNING_STATE_STOPPED,
 ] as const;
+
+type RunningState = (typeof RUNNING_STATES)[number];
 
 type Button<E> =
   | {
@@ -263,40 +265,42 @@ type TimerStats<RoundKind extends string = string> = {
   round: TimerStatsCurrent<RoundKind>;
 };
 
-export type ViewValue = ViewActiveValue & {
-  // read-only, round totals can be derived
-  modeSelector: {
-    value: ModeSelectorSettingsViewValue;
-  };
-} & (
-    | {
-        running: 'running';
-        startButton: InactiveButton;
-        stopButton: InactiveButton;
-        pauseButton: ActiveButton<PauseClickedEvent>;
-        continueButton: InactiveButton;
-        timerStats: TimerStats;
-      }
-    | {
-        running: 'paused';
-        startButton: InactiveButton;
-        stopButton: ActiveButton<StopClickedEvent>;
-        pauseButton: InactiveButton;
-        continueButton: ActiveButton<ContinueClickedEvent>;
-      }
-    | {
-        running: 'stopped';
-        startButton: ActiveButton<StartClickedEvent>;
-        stopButton: InactiveButton;
-        pauseButton: InactiveButton;
-        continueButton: InactiveButton;
-        // read-write
-        modeSelector: {
-          actions: ModeSelectorSettingsViewActions;
-        };
-        // todo program queries
-      }
-  );
+export type ViewValue<R extends RunningState = RunningState> =
+  ViewActiveValue & {
+    // read-only, round totals can be derived
+    modeSelector: {
+      value: ModeSelectorSettingsViewValue;
+    };
+    running: R;
+  } & (
+      | {
+          running: 'running';
+          startButton: InactiveButton;
+          stopButton: InactiveButton;
+          pauseButton: ActiveButton<PauseClickedEvent>;
+          continueButton: InactiveButton;
+          timerStats: TimerStats;
+        }
+      | {
+          running: 'paused';
+          startButton: InactiveButton;
+          stopButton: ActiveButton<StopClickedEvent>;
+          pauseButton: InactiveButton;
+          continueButton: ActiveButton<ContinueClickedEvent>;
+        }
+      | {
+          running: 'stopped';
+          startButton: ActiveButton<StartClickedEvent>;
+          stopButton: InactiveButton;
+          pauseButton: InactiveButton;
+          continueButton: InactiveButton;
+          // read-write
+          modeSelector: {
+            actions: ModeSelectorSettingsViewActions;
+          };
+          // todo program queries
+        }
+    );
 type View_<S, R> = (state: S) => R;
 export type View = View_<State, ViewValue>;
 

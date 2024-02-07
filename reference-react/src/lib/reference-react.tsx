@@ -3,11 +3,13 @@ import {
   FunctionComponent,
   MouseEvent,
   useCallback,
+  useEffect,
   useMemo,
   useState,
 } from 'react';
 import * as ui from '@jikan0/ui';
 import { match } from 'ts-pattern';
+import { ViewValue } from '@jikan0/ui';
 
 const StyledReferenceReact = styled.div`
   color: pink;
@@ -15,31 +17,31 @@ const StyledReferenceReact = styled.div`
 
 const runningStages: {
   [k in ui.State['running']]: FunctionComponent<{
-    setUiState: (state: ui.State) => void;
-    uiState: ui.State & {
+    viewValue: ViewValue & {
       running: k;
     };
   }>;
 } = {
-  running: () => <div>Running</div>,
+  running: ({ viewValue }) => (
+    <div>
+      Running: {viewValue.timerStats.round.kind}:{' '}
+      {Number(viewValue.timerStats.round.left)}/
+      {Number(viewValue.timerStats.rounds)}
+    </div>
+  ),
   paused: () => <div>Paused</div>,
   stopped: () => <div>Stopped</div>,
 };
 
-const runningStage = (
-  uiState: ui.State,
-  setUiState: (state: ui.State) => void
-) =>
+const showRunningStage = (uiState: ui.State) =>
   // TODO dry better?
-  match(uiState)
-    .with({ running: 'running' }, (s) =>
-      runningStages.running({ setUiState, uiState: s })
+  match(ui.view(uiState))
+    .with({ running: 'running' }, (v) =>
+      runningStages.running({ viewValue: v })
     )
-    .with({ running: 'paused' }, (s) =>
-      runningStages.paused({ setUiState, uiState: s })
-    )
-    .with({ running: 'stopped' }, (s) =>
-      runningStages.stopped({ setUiState, uiState: s })
+    .with({ running: 'paused' }, (v) => runningStages.paused({ viewValue: v }))
+    .with({ running: 'stopped' }, (v) =>
+      runningStages.stopped({ viewValue: v })
     )
     .exhaustive();
 
@@ -78,13 +80,30 @@ const Controls = ({
   );
 };
 
+const useTimeGoblin = ({
+  uiState,
+  setUiState,
+}: {
+  uiState: typeof ui.state0;
+  setUiState: (s: typeof ui.state0) => void;
+}) => {
+  useEffect(() => {
+    const t = 1000;
+    const timeout = setTimeout(() => {
+      setUiState(ui.reduce(ui.TimePassedEvent(BigInt(t)))(uiState));
+    }, t);
+    return () => clearTimeout(timeout);
+  }, [uiState]);
+};
+
 export function ReferenceReact() {
   const [uiState, setUiState] = useState(ui.state0);
+  useTimeGoblin({ uiState, setUiState });
   // TODO mode select
   return (
     <StyledReferenceReact>
       <h1>Welcome to ReferenceReact!</h1>
-      {runningStage(uiState, setUiState)}
+      {showRunningStage(uiState)}
       <Controls setUiState={setUiState} uiState={uiState} />
     </StyledReferenceReact>
   );
