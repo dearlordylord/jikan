@@ -7,6 +7,7 @@ import {
   isEmpty,
 } from '@jikan0/fsm';
 import { lastRNEA, pipe } from '@jikan0/utils';
+import { Deep } from '@rimbu/core';
 
 // TODO program library
 // TODO fp eslint
@@ -78,12 +79,49 @@ export const ModeSelectedEvent = <M extends Mode>(
   mode,
 });
 
+export type SimpleModeExerciseTimeSelectedEvent = {
+  _tag: 'SimpleModeExerciseTimeSelected';
+  exerciseTimeMs: bigint;
+};
+
+export const MakeSimpleModeExerciseTimeSelectedEvent = (
+  exerciseTimeMs: bigint
+): SimpleModeExerciseTimeSelectedEvent => ({
+  _tag: 'SimpleModeExerciseTimeSelected',
+  exerciseTimeMs,
+});
+
+export type SimpleModeRestTimeSelectedEvent = {
+  _tag: 'SimpleModeRestTimeSelected';
+  restTimeMs: bigint;
+};
+
+export const MakeSimpleModeRestTimeSelectedEvent = (
+  restTimeMs: bigint
+): SimpleModeRestTimeSelectedEvent => ({
+  _tag: 'SimpleModeRestTimeSelected',
+  restTimeMs,
+});
+
+export type SimpleModeRoundsSelectedEvent = {
+  _tag: 'SimpleModeRoundsSelected';
+  rounds: bigint;
+};
+
+export const MakeSimpleModeRoundsSelectedEvent = (rounds: bigint): SimpleModeRoundsSelectedEvent => ({
+  _tag: 'SimpleModeRoundsSelected',
+  rounds
+});
+
 export type Event =
   | StartClickedEvent
   | StopClickedEvent
   | PauseClickedEvent
   | ContinueClickedEvent
   | ModeSelectedEvent
+  | SimpleModeExerciseTimeSelectedEvent
+  | SimpleModeRestTimeSelectedEvent
+  | SimpleModeRoundsSelectedEvent
   | TimePassedEvent;
 
 export type Action = Event;
@@ -220,11 +258,11 @@ const PREPARATION_STEPS_SIMPLE = [
   },
 ] as const;
 
-const simpleModeSelectorToProgram = (
+export const simpleModeSelectorToProgram = (
   settings: Omit<ModeSelectorSettingsValue & { mode: SimpleMode }, 'mode'>
 ): ProgramPerMode[SimpleMode] =>
   Object.freeze(
-    [...Array(settings.rounds).keys()].flatMap((i) => [
+    [...Array(Number(settings.rounds)).keys()].flatMap((i) => [
       ...(i === 0 ? PREPARATION_STEPS_SIMPLE : ([] as const)),
       { kind: EXERCISE_STEP, duration: Number(settings.exerciseTimeMs) },
       ...(Number(settings.rounds) === i + 1
@@ -241,16 +279,27 @@ const simpleModeStateToStats = (
   left: BigInt(s.duration),
 });
 
+export type ModeSelectorSettingViewModeActions<M extends Mode> = {
+  simple: {
+    setRounds: typeof MakeSimpleModeRoundsSelectedEvent,
+    setExerciseTimeMs: typeof MakeSimpleModeExerciseTimeSelectedEvent,
+    setRestTimeMs: typeof MakeSimpleModeRestTimeSelectedEvent,
+  }
+}[M];
+
 export type ModeSelectorSettingsViewValue = ModeSelectorSettingsValue;
 export type ModeSelectorSettingsViewActions = {
   [m in Mode]: {
     onSelect: ModeSelectedEvent<m>;
-  };
+  } & ModeSelectorSettingViewModeActions<m>;
 };
 
 const modeSelectorSettingsViewActions: ModeSelectorSettingsViewActions = {
   simple: {
     onSelect: ModeSelectedEvent('simple'),
+    setRounds: MakeSimpleModeRoundsSelectedEvent,
+    setExerciseTimeMs: MakeSimpleModeExerciseTimeSelectedEvent,
+    setRestTimeMs: MakeSimpleModeRestTimeSelectedEvent,
   },
 } as const;
 
@@ -447,14 +496,47 @@ export const reduce =
       }
       case 'ModeSelected': {
         if (state.mode.selected === action.mode) return state;
-        // TODO deep change tools?
-        return {
-          ...state,
-          mode: {
-            ...state.mode,
+        return Deep.patch(state, [{
+          mode: [{
             selected: action.mode,
-          },
-        };
+          }],
+        }]);
+      }
+      case 'SimpleModeRoundsSelected': {
+        if (state.mode.selected !== SIMPLE_MODE) return state;
+        return Deep.patch(state, [{
+          mode: [{
+            settings: [{
+              simple: [{
+                rounds: action.rounds,
+              }],
+            }],
+          }],
+        }]);
+      }
+      case 'SimpleModeExerciseTimeSelected': {
+        if (state.mode.selected !== SIMPLE_MODE) return state;
+        return Deep.patch(state, [{
+          mode: [{
+            settings: [{
+              simple: [{
+                exerciseTimeMs: action.exerciseTimeMs,
+              }],
+            }],
+          }],
+        }]);
+      }
+      case 'SimpleModeRestTimeSelected': {
+        if (state.mode.selected !== SIMPLE_MODE) return state;
+        return Deep.patch(state, [{
+          mode: [{
+            settings: [{
+              simple: [{
+                restTimeMs: action.restTimeMs,
+              }],
+            }],
+          }],
+        }]);
       }
     }
   };
