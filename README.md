@@ -8,6 +8,8 @@ exercise timers as immutable state machines on Typescript
 
 TODO keywords: immutable/functional, (optionally) deterministic, 0 dependency, timer with time concern separated/abstracted away
 
-TODO reference implementations: web, react-native
+TODO reference implementations: react-native
+
+TODO reference-metronome
 
 TODO publish properly (when NX really supports it) - or move to pnpm workspaces, publish from there
