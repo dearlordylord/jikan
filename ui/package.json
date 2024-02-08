@@ -4,7 +4,8 @@
   "dependencies": {
     "tslib": "^2.3.0",
     "@jikan0/fsm": "*",
-    "@jikan0/utils": "*"
+    "@jikan0/utils": "*",
+    "@rimbu/core": "^2.0.0"
   },
   "type": "commonjs",
   "main": "./src/index.js",

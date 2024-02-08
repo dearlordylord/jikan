@@ -108,9 +108,11 @@ export type SimpleModeRoundsSelectedEvent = {
   rounds: bigint;
 };
 
-export const MakeSimpleModeRoundsSelectedEvent = (rounds: bigint): SimpleModeRoundsSelectedEvent => ({
+export const MakeSimpleModeRoundsSelectedEvent = (
+  rounds: bigint
+): SimpleModeRoundsSelectedEvent => ({
   _tag: 'SimpleModeRoundsSelected',
-  rounds
+  rounds,
 });
 
 export type Event =
@@ -281,10 +283,10 @@ const simpleModeStateToStats = (
 
 export type ModeSelectorSettingViewModeActions<M extends Mode> = {
   simple: {
-    setRounds: typeof MakeSimpleModeRoundsSelectedEvent,
-    setExerciseTimeMs: typeof MakeSimpleModeExerciseTimeSelectedEvent,
-    setRestTimeMs: typeof MakeSimpleModeRestTimeSelectedEvent,
-  }
+    setRounds: typeof MakeSimpleModeRoundsSelectedEvent;
+    setExerciseTimeMs: typeof MakeSimpleModeExerciseTimeSelectedEvent;
+    setRestTimeMs: typeof MakeSimpleModeRestTimeSelectedEvent;
+  };
 }[M];
 
 export type ModeSelectorSettingsViewValue = ModeSelectorSettingsValue;
@@ -496,47 +498,75 @@ export const reduce =
       }
       case 'ModeSelected': {
         if (state.mode.selected === action.mode) return state;
-        return Deep.patch(state, [{
-          mode: [{
-            selected: action.mode,
-          }],
-        }]);
+        return Deep.patch(state, [
+          {
+            mode: [
+              {
+                selected: action.mode,
+              },
+            ],
+          },
+        ]);
       }
       case 'SimpleModeRoundsSelected': {
         if (state.mode.selected !== SIMPLE_MODE) return state;
-        return Deep.patch(state, [{
-          mode: [{
-            settings: [{
-              simple: [{
-                rounds: action.rounds,
-              }],
-            }],
-          }],
-        }]);
+        return Deep.patch(state, [
+          {
+            mode: [
+              {
+                settings: [
+                  {
+                    simple: [
+                      {
+                        rounds: action.rounds,
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ]);
       }
       case 'SimpleModeExerciseTimeSelected': {
         if (state.mode.selected !== SIMPLE_MODE) return state;
-        return Deep.patch(state, [{
-          mode: [{
-            settings: [{
-              simple: [{
-                exerciseTimeMs: action.exerciseTimeMs,
-              }],
-            }],
-          }],
-        }]);
+        return Deep.patch(state, [
+          {
+            mode: [
+              {
+                settings: [
+                  {
+                    simple: [
+                      {
+                        exerciseTimeMs: action.exerciseTimeMs,
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ]);
       }
       case 'SimpleModeRestTimeSelected': {
         if (state.mode.selected !== SIMPLE_MODE) return state;
-        return Deep.patch(state, [{
-          mode: [{
-            settings: [{
-              simple: [{
-                restTimeMs: action.restTimeMs,
-              }],
-            }],
-          }],
-        }]);
+        return Deep.patch(state, [
+          {
+            mode: [
+              {
+                settings: [
+                  {
+                    simple: [
+                      {
+                        restTimeMs: action.restTimeMs,
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ]);
       }
     }
   };

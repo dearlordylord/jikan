@@ -1,12 +1,13 @@
 import {
   ContinueClickedEvent,
   PauseClickedEvent,
-  reduce, simpleModeSelectorToProgram,
+  reduce,
+  simpleModeSelectorToProgram,
   StartClickedEvent,
   state0,
   StopClickedEvent,
   TimePassedEvent,
-  view
+  view,
 } from './ui';
 import { pipe } from '@jikan0/utils';
 
@@ -130,12 +131,14 @@ describe('ui', () => {
     });
     describe('simpleModeSelectorToProgram', () => {
       it('creates 20 queue items out of 10 rounds', () => {
-        expect(simpleModeSelectorToProgram({
-          rounds: BigInt(10),
-          exerciseTimeMs: BigInt(1000),
-          restTimeMs: BigInt(500)
-        }).length).toBe(20/* +1 preparation - 1 rest*/);
-      })
+        expect(
+          simpleModeSelectorToProgram({
+            rounds: BigInt(10),
+            exerciseTimeMs: BigInt(1000),
+            restTimeMs: BigInt(500),
+          }).length
+        ).toBe(20 /* +1 preparation - 1 rest*/);
+      });
     });
   });
 });
