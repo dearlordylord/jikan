@@ -13,3 +13,11 @@ TODO reference implementations: react-native, mermaid
 TODO reference-metronome
 
 TODO publish properly (when NX really supports it) - or move to pnpm workspaces, publish from there
+
+TODO round end warning time setting https://www.reddit.com/r/amateur_boxing/comments/16f4s7a/theres_a_lot_of_boxing_timer_apps_out_there_is/
+
+TODO warmup time setting
+
+TODO keep-awake - check
+
+TODO drum inputs for react-native - Picker ![original.png](original.png)

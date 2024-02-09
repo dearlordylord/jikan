@@ -4,7 +4,6 @@ import {
   FunctionComponent,
   MouseEvent,
   useCallback,
-  useEffect,
   useMemo,
   useState,
 } from 'react';
@@ -12,10 +11,15 @@ import * as ui from '@jikan0/ui';
 import { match } from 'ts-pattern';
 import { ModeSelectorSettingViewModeActions, ViewValue } from '@jikan0/ui';
 import { useTimeGremlin } from '@jikan0/react-time-gremlin';
+import { GestureResponderEvent, Text, View } from 'react-native';
+import { useKeepAwake } from 'expo-keep-awake';
+import { Button } from 'react-native-paper';
+import { Picker } from '@react-native-picker/picker';
 
-const StyledReferenceReact = styled.div`
-  color: pink;
-`;
+const NoSleepy = () => {
+  useKeepAwake();
+  return <View></View>;
+};
 
 const runningStages: {
   [k in ui.State['running']]: FunctionComponent<{
@@ -25,15 +29,25 @@ const runningStages: {
   }>;
 } = {
   running: ({ viewValue }) => (
-    <div>
-      Running: {viewValue.timerStats.round.kind}:{' '}
-      {Number(viewValue.timerStats.round.left)} of{' '}
-      {Number(viewValue.timerStats.round.current)}/
-      {Number(viewValue.timerStats.rounds)}
-    </div>
+    <View>
+      <NoSleepy />
+      <Text>Running: {viewValue.timerStats.round.kind}: </Text>
+      <Text>{Number(viewValue.timerStats.round.left)} of </Text>
+      <Text>{Number(viewValue.timerStats.round.current)}/</Text>
+      <Text>{Number(viewValue.timerStats.rounds)}</Text>
+    </View>
   ),
-  paused: () => <div>Paused</div>,
-  stopped: () => <div>Stopped</div>,
+  paused: () => (
+    <View>
+      <NoSleepy />
+      <Text>Paused</Text>
+    </View>
+  ),
+  stopped: () => (
+    <View>
+      <Text>Stopped</Text>
+    </View>
+  ),
 };
 
 const showRunningStage = (uiState: ui.State) =>
@@ -72,26 +86,25 @@ const Controls = ({
     setUiState,
     uiState,
   });
-  const makeOnClick =
-    (action: ui.Action) => (e: MouseEvent<HTMLButtonElement>) => {
-      e.preventDefault();
-      onAction(action);
-    };
+  const makeOnClick = (action: ui.Action) => (_e: GestureResponderEvent) => {
+    // e.preventDefault();
+    onAction(action);
+  };
   return (
     <div>
       {view.startButton.active ? (
-        <button onClick={makeOnClick(view.startButton.onClick)}>Start</button>
+        <Button onPress={makeOnClick(view.startButton.onClick)}>Start</Button>
       ) : null}
       {view.continueButton.active ? (
-        <button onClick={makeOnClick(view.continueButton.onClick)}>
+        <Button onPress={makeOnClick(view.continueButton.onClick)}>
           Continue
-        </button>
+        </Button>
       ) : null}
       {view.pauseButton.active ? (
-        <button onClick={makeOnClick(view.pauseButton.onClick)}>Pause</button>
+        <Button onPress={makeOnClick(view.pauseButton.onClick)}>Pause</Button>
       ) : null}
       {view.stopButton.active ? (
-        <button onClick={makeOnClick(view.stopButton.onClick)}>Stop</button>
+        <Button onPress={makeOnClick(view.stopButton.onClick)}>Stop</Button>
       ) : null}
     </div>
   );
@@ -113,9 +126,8 @@ const Settings = ({
     (
       makeAction: ModeSelectorSettingViewModeActions<'simple'>[keyof ModeSelectorSettingViewModeActions<'simple'>]
     ) =>
-    (e: ChangeEvent<HTMLInputElement>) => {
-      e.preventDefault();
-      const v = BigInt(parseInt(e.target.value, 10));
+    (n: number) => {
+      const v = BigInt(n);
       onAction(makeAction(v));
     };
   const mode = view.modeSelector.value.mode;
@@ -126,34 +138,36 @@ const Settings = ({
             <div className="settings-stopped">
               <label>
                 rounds:{' '}
-                <input
-                  type="number"
-                  step="1"
-                  min="1"
-                  value={Number(value.rounds)}
-                  onChange={makeOnChange(actions.setRounds)}
-                />
+                <Picker
+                  selectedValue={Number(value.rounds)}
+                  onValueChange={makeOnChange(actions.setRounds)}
+                >
+                  <Picker.Item label="1" value={1} />
+                  {Array.from({ length: 50 }, (_, i) => i + 1).map((i) => (
+                    <Picker.Item key={i} label={String(i)} value={i} />
+                  ))}
+                </Picker>
               </label>
-              <label>
-                exercise time ms:{' '}
-                <input
-                  type="number"
-                  step="1000"
-                  min="1000"
-                  value={Number(value.exerciseTimeMs)}
-                  onChange={makeOnChange(actions.setExerciseTimeMs)}
-                />
-              </label>
-              <label>
-                rest time ms:{' '}
-                <input
-                  type="number"
-                  step="1000"
-                  min="1000"
-                  value={Number(value.restTimeMs)}
-                  onChange={makeOnChange(actions.setRestTimeMs)}
-                />
-              </label>
+              {/*<label>*/}
+              {/*  exercise time ms:{' '}*/}
+              {/*  <input*/}
+              {/*    type="number"*/}
+              {/*    step="1000"*/}
+              {/*    min="1000"*/}
+              {/*    value={Number(value.exerciseTimeMs)}*/}
+              {/*    onChange={makeOnChange(actions.setExerciseTimeMs)}*/}
+              {/*  />*/}
+              {/*</label>*/}
+              {/*<label>*/}
+              {/*  rest time ms:{' '}*/}
+              {/*  <input*/}
+              {/*    type="number"*/}
+              {/*    step="1000"*/}
+              {/*    min="1000"*/}
+              {/*    value={Number(value.restTimeMs)}*/}
+              {/*    onChange={makeOnChange(actions.setRestTimeMs)}*/}
+              {/*  />*/}
+              {/*</label>*/}
             </div>
           ))(
             view.modeSelector
@@ -165,18 +179,17 @@ const Settings = ({
   );
 };
 
-export function ReferenceReact() {
+export function ReactNativeTimer() {
   const [uiState, setUiState] = useState(ui.state0);
   useTimeGremlin({ uiState, setUiState });
   // TODO mode select
   return (
-    <StyledReferenceReact>
-      <h1>Welcome to ReferenceReact!</h1>
+    <View>
       {showRunningStage(uiState)}
       <Controls setUiState={setUiState} uiState={uiState} />
       <Settings setUiState={setUiState} uiState={uiState} />
-    </StyledReferenceReact>
+    </View>
   );
 }
 
-export default ReferenceReact;
+export default ReactNativeTimer;

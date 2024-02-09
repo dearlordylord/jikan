@@ -1,0 +1,29 @@
+{
+  "name": "react-time-gremlin",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "react-time-gremlin/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/react-time-gremlin",
+        "main": "react-time-gremlin/src/index.ts",
+        "tsConfig": "react-time-gremlin/tsconfig.lib.json",
+        "assets": ["react-time-gremlin/*.md"]
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "react-time-gremlin/jest.config.ts"
+      }
+    }
+  },
+  "tags": []
+}
