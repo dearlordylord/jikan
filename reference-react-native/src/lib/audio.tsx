@@ -36,9 +36,7 @@ export const SoundsContext = createContext<SoundsContext>({
 
 export const useSoundsContext = () => useContext(SoundsContext);
 
-export const SoundsProvider: FC<PropsWithChildren<Record<string, never>>> = ({
-  children,
-}) => {
+export const SoundsProvider: FC<PropsWithChildren> = ({ children }) => {
   const beep = useSounds();
   return (
     <SoundsContext.Provider value={{ beep }}>{children}</SoundsContext.Provider>

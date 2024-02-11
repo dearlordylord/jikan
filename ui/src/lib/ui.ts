@@ -329,7 +329,7 @@ export type ViewValue<R extends RunningState = RunningState> =
       | {
           running: 'running';
           startButton: InactiveButton;
-          stopButton: InactiveButton;
+          stopButton: ActiveButton<StopClickedEvent>;
           pauseButton: ActiveButton<PauseClickedEvent>;
           continueButton: InactiveButton;
           timerStats: TimerStats;
@@ -371,7 +371,8 @@ export const view = <M extends Mode = Mode>(state: State<M>): ViewValue => {
           active: false,
         },
         stopButton: {
-          active: false,
+          active: true,
+          onClick: StopClickedEvent(),
         },
         pauseButton: {
           active: true,
@@ -472,11 +473,7 @@ export const reduce =
         };
       }
       case 'StopClicked': {
-        if (
-          state.running === 'stopped' ||
-          state.running === 'running' /*pause before stopping*/
-        )
-          return state;
+        if (state.running === 'stopped') return state;
         return {
           ...state,
           running: 'stopped',
