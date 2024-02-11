@@ -21,3 +21,9 @@ TODO warmup time setting
 TODO keep-awake - check
 
 TODO drum inputs for react-native - Picker ![original.png](original.png)
+
+TODO skip break
+
+TODO allow to stop from running stage
+
+TODO pause ended signal - just n sec before or n sec beforehand

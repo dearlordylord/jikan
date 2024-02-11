@@ -3,9 +3,9 @@ import {
   ChangeEvent,
   FunctionComponent,
   MouseEvent,
-  useCallback,
+  useCallback, useEffect,
   useMemo,
-  useState,
+  useState
 } from 'react';
 import * as ui from '@jikan0/ui';
 import { match } from 'ts-pattern';
@@ -14,7 +14,8 @@ import { useTimeGremlin } from '@jikan0/react-time-gremlin';
 import { GestureResponderEvent, Text, View } from 'react-native';
 import { useKeepAwake } from 'expo-keep-awake';
 import { Button } from 'react-native-paper';
-import { Picker } from '@react-native-picker/picker';
+import RNPickerSelect from 'react-native-picker-select';
+import { useSounds } from './audio';
 
 const NoSleepy = () => {
   useKeepAwake();
@@ -91,7 +92,7 @@ const Controls = ({
     onAction(action);
   };
   return (
-    <div>
+    <View>
       {view.startButton.active ? (
         <Button onPress={makeOnClick(view.startButton.onClick)}>Start</Button>
       ) : null}
@@ -106,9 +107,11 @@ const Controls = ({
       {view.stopButton.active ? (
         <Button onPress={makeOnClick(view.stopButton.onClick)}>Stop</Button>
       ) : null}
-    </div>
+    </View>
   );
 };
+
+const MAX_ROUNDS = 50;
 
 const Settings = ({
   setUiState,
@@ -132,22 +135,20 @@ const Settings = ({
     };
   const mode = view.modeSelector.value.mode;
   return (
-    <div>
+    <View>
       {view.running === 'stopped'
         ? ((value, actions) => (
-            <div className="settings-stopped">
-              <label>
-                rounds:{' '}
-                <Picker
-                  selectedValue={Number(value.rounds)}
+            <View>
+              <View>
+                <Text>Rounds:</Text>
+                <RNPickerSelect
+                  value={Number(value.rounds)}
                   onValueChange={makeOnChange(actions.setRounds)}
-                >
-                  <Picker.Item label="1" value={1} />
-                  {Array.from({ length: 50 }, (_, i) => i + 1).map((i) => (
-                    <Picker.Item key={i} label={String(i)} value={i} />
+                  items={Array.from({ length: MAX_ROUNDS }, (_, i) => i + 1).map((i) => (
+                    { label: String(i), value: i }
                   ))}
-                </Picker>
-              </label>
+                />
+              </View>
               {/*<label>*/}
               {/*  exercise time ms:{' '}*/}
               {/*  <input*/}
@@ -168,20 +169,30 @@ const Settings = ({
               {/*    onChange={makeOnChange(actions.setRestTimeMs)}*/}
               {/*  />*/}
               {/*</label>*/}
-            </div>
+            </View>
           ))(
             view.modeSelector
               .value /*TODO move setting values inside mode lock*/,
             view.modeSelector.actions[mode]
           )
         : null}
-    </div>
+    </View>
   );
 };
 
 export function ReactNativeTimer() {
   const [uiState, setUiState] = useState(ui.state0);
   useTimeGremlin({ uiState, setUiState });
+  // const beep = useSounds();
+  // useEffect(() => {
+  //   beep('beep');
+  //   setTimeout(() => {
+  //     beep('beep');
+  //     setTimeout(() => {
+  //       beep('bell1');
+  //     }, 3000);
+  //   }, 3000);
+  // }, [beep])
   // TODO mode select
   return (
     <View>

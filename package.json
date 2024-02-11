@@ -19,13 +19,16 @@
     "react-is": "18.2.0",
     "react-native": "0.73.2",
     "react-native-paper": "^5.12.3",
+    "react-native-picker-select": "^9.0.1",
     "react-native-svg": "14.1.0",
     "react-native-svg-transformer": "1.2.0",
     "react-native-web": "~0.19.9",
     "styled-components": "5.3.6",
     "terminal-kit": "^3.0.1",
     "ts-pattern": "^5.0.6",
-    "tslib": "^2.3.0"
+    "tslib": "^2.3.0",
+    "expo-av": "~13.10.5",
+    "expo-asset": "~9.0.2"
   },
   "devDependencies": {
     "@babel/core": "^7.14.5",
