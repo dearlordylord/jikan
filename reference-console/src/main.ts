@@ -12,7 +12,7 @@ const renderStats = (v: ViewValue): string => {
         '/' +
         v.timerStats.rounds +
         ': ' +
-        v.timerStats.round.left
+        v.timerStats.round.leftMs
       : ''
   }`;
 };

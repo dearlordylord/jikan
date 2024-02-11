@@ -229,17 +229,17 @@ export const state0: State<SimpleMode> = Object.freeze({
   mode: modeSelectorState0,
 });
 
-const PREPARATION_STEP = 'preparation' as const;
-const EXERCISE_STEP = 'exercise' as const;
-const REST_STEP = 'rest' as const;
+export const PREPARATION_STEP = 'warmup' as const;
+export const EXERCISE_STEP = 'exercise' as const;
+export const REST_STEP = 'rest' as const;
 
-const SIMPLE_PROGRAM_STEPS = [
+export const SIMPLE_PROGRAM_STEPS = [
   PREPARATION_STEP,
   EXERCISE_STEP,
   REST_STEP,
 ] as const;
 
-type SimpleProgramStep = (typeof SIMPLE_PROGRAM_STEPS)[number];
+export type SimpleProgramStep = (typeof SIMPLE_PROGRAM_STEPS)[number];
 
 type ProgramPerMode = {
   [k in Mode]: Program<string>;
@@ -278,7 +278,8 @@ const simpleModeStateToStats = (
 ): TimerStatsCurrent<SimpleProgramStep> => ({
   current: BigInt(s.queue.filter((x) => x.kind === EXERCISE_STEP).length),
   kind: lastRNEA(s.queue).kind,
-  left: BigInt(s.duration),
+  leftMs: BigInt(s.duration),
+  totalMs: BigInt(lastRNEA(s.queue).duration),
 });
 
 export type ModeSelectorSettingViewModeActions<M extends Mode> = {
@@ -308,7 +309,8 @@ const modeSelectorSettingsViewActions: ModeSelectorSettingsViewActions = {
 type TimerStatsCurrent<RoundKind extends string = string> = {
   current: bigint;
   kind: RoundKind;
-  left: bigint;
+  leftMs: bigint;
+  totalMs: bigint;
 };
 
 type TimerStats<RoundKind extends string = string> = {

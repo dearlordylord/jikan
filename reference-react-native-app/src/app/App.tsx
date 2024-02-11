@@ -16,9 +16,7 @@ import { PaperProvider } from 'react-native-paper';
 export const App = () => {
   return (
     <PaperProvider>
-      <View>
-        <ReactNativeTimer />
-      </View>
+      <ReactNativeTimer />
     </PaperProvider>
   );
 };

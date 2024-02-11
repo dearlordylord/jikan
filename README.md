@@ -18,7 +18,7 @@ TODO round end warning time setting https://www.reddit.com/r/amateur_boxing/comm
 
 TODO warmup time setting
 
-TODO keep-awake - check
+TODO keep-awake - check it closes on stopped; add "exit" button
 
 TODO drum inputs for react-native - Picker ![original.png](original.png)
 
@@ -26,4 +26,4 @@ TODO skip break
 
 TODO allow to stop from running stage
 
-TODO pause ended signal - just n sec before or n sec beforehand
+TODO settings storage

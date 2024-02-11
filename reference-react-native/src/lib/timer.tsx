@@ -1,21 +1,19 @@
-import styled from 'styled-components';
-import {
-  ChangeEvent,
-  FunctionComponent,
-  MouseEvent,
-  useCallback, useEffect,
-  useMemo,
-  useState
-} from 'react';
+import { FunctionComponent, useCallback, useMemo, useState } from 'react';
 import * as ui from '@jikan0/ui';
 import { match } from 'ts-pattern';
-import { ModeSelectorSettingViewModeActions, ViewValue } from '@jikan0/ui';
+import {
+  EXERCISE_STEP,
+  ModeSelectorSettingViewModeActions,
+  PREPARATION_STEP,
+  REST_STEP,
+  ViewValue,
+} from '@jikan0/ui';
 import { useTimeGremlin } from '@jikan0/react-time-gremlin';
 import { GestureResponderEvent, Text, View } from 'react-native';
 import { useKeepAwake } from 'expo-keep-awake';
 import { Button } from 'react-native-paper';
 import RNPickerSelect from 'react-native-picker-select';
-import { useSounds } from './audio';
+import { SoundsProvider, useSoundsContext } from './audio';
 
 const NoSleepy = () => {
   useKeepAwake();
@@ -33,7 +31,7 @@ const runningStages: {
     <View>
       <NoSleepy />
       <Text>Running: {viewValue.timerStats.round.kind}: </Text>
-      <Text>{Number(viewValue.timerStats.round.left)} of </Text>
+      <Text>{Number(viewValue.timerStats.round.leftMs)} of </Text>
       <Text>{Number(viewValue.timerStats.round.current)}/</Text>
       <Text>{Number(viewValue.timerStats.rounds)}</Text>
     </View>
@@ -144,9 +142,10 @@ const Settings = ({
                 <RNPickerSelect
                   value={Number(value.rounds)}
                   onValueChange={makeOnChange(actions.setRounds)}
-                  items={Array.from({ length: MAX_ROUNDS }, (_, i) => i + 1).map((i) => (
-                    { label: String(i), value: i }
-                  ))}
+                  items={Array.from(
+                    { length: MAX_ROUNDS },
+                    (_, i) => i + 1
+                  ).map((i) => ({ label: String(i), value: i }))}
                 />
               </View>
               {/*<label>*/}
@@ -180,22 +179,51 @@ const Settings = ({
   );
 };
 
-export function ReactNativeTimer() {
+const useOnTick = () => {
+  const { beep } = useSoundsContext();
+  return useCallback(
+    (uiState: ui.State) => {
+      const view = ui.view(uiState);
+      if (view.running !== 'running') return;
+      const roundKind = view.timerStats.round.kind;
+      const timeLeft = view.timerStats.round.leftMs;
+      const timeTotal = view.timerStats.round.totalMs;
+      const roundsLeft = view.timerStats.rounds - view.timerStats.round.current;
+      if (roundKind === PREPARATION_STEP) return;
+      if (roundKind === REST_STEP) {
+        // three beeps but warn the first beforehand
+        if (timeLeft === timeTotal) {
+          // rest step start
+          beep('bell1');
+          // last 3 seconds
+        } else if (timeLeft === BigInt(5000) || timeLeft <= BigInt(2000)) {
+          beep('beep');
+        }
+      } else if (roundKind === EXERCISE_STEP) {
+        if (timeLeft === timeTotal) {
+          // exercise step start
+          beep('bell1');
+          // last 3 seconds
+        } else if (timeLeft <= BigInt(3000)) {
+          // but also, the last second of the last round - give them a reward of 3 rings!
+          if (roundsLeft === BigInt(1) && timeLeft === BigInt(1000)) {
+            beep('bell3');
+          } else {
+            beep('beep');
+          }
+        }
+      }
+    },
+    [beep]
+  );
+};
+
+function ReactNativeTimer_() {
   const [uiState, setUiState] = useState(ui.state0);
-  useTimeGremlin({ uiState, setUiState });
-  // const beep = useSounds();
-  // useEffect(() => {
-  //   beep('beep');
-  //   setTimeout(() => {
-  //     beep('beep');
-  //     setTimeout(() => {
-  //       beep('bell1');
-  //     }, 3000);
-  //   }, 3000);
-  // }, [beep])
-  // TODO mode select
+  const onTick = useOnTick();
+  useTimeGremlin({ uiState, setUiState, onTick, appetite: BigInt(1000) });
   return (
-    <View>
+    <View style={{ justifyContent: 'center', flex: 1 }}>
       {showRunningStage(uiState)}
       <Controls setUiState={setUiState} uiState={uiState} />
       <Settings setUiState={setUiState} uiState={uiState} />
@@ -203,4 +231,8 @@ export function ReactNativeTimer() {
   );
 }
 
-export default ReactNativeTimer;
+export const ReactNativeTimer = () => (
+  <SoundsProvider>
+    <ReactNativeTimer_ />
+  </SoundsProvider>
+);

@@ -27,7 +27,7 @@ const runningStages: {
   running: ({ viewValue }) => (
     <div>
       Running: {viewValue.timerStats.round.kind}:{' '}
-      {Number(viewValue.timerStats.round.left)} of{' '}
+      {Number(viewValue.timerStats.round.leftMs)} of{' '}
       {Number(viewValue.timerStats.round.current)}/
       {Number(viewValue.timerStats.rounds)}
     </div>
