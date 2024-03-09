@@ -8,6 +8,8 @@ import {
 } from '@jikan0/fsm';
 import { lastRNEA, pipe } from '@jikan0/utils';
 import { Deep } from '@rimbu/core';
+import * as S from "@effect/schema/Schema";
+
 
 // TODO program library
 // TODO fp eslint
@@ -166,7 +168,7 @@ type ViewActiveValue = {
 };
 
 export type State<M extends Mode = Mode> = {
-  mode: ModeSelectorState<M>;
+  mode: ModeSelectorState & {selected: M};
 } & (
   | {
       running: RunningStateRunning | RunningStatePaused;
@@ -177,16 +179,32 @@ export type State<M extends Mode = Mode> = {
     }
 );
 
+export const SimpleModeSettings = S.struct({
+  exerciseTimeMs: S.bigint,
+  restTimeMs: S.bigint,
+  rounds: S.bigint,
+});
+
+
 export type ModeSelectorSettingsValue = {
   mode: Mode;
-} & {
+} & ({
   mode: SimpleMode;
-  exerciseTimeMs: bigint; // TODO positive...
-  restTimeMs: bigint; // TODO positive...
-  rounds: bigint; // TODO positive...
-};
 
-export type ModeSelectorSettings = Readonly<{
+} & S.Schema.To<typeof SimpleModeSettings>);
+
+export const ModesSettings = S.struct({
+  simple: SimpleModeSettings,
+});
+
+export const ModeSettings = S.struct({
+  selected: S.literal(...MODES),
+  settings: ModesSettings,
+});
+
+export type ModeSettings = S.Schema.To<typeof ModeSettings>;
+
+export type ModesSettings = Readonly<{
   [k in Mode]: Readonly<
     Omit<
       ModeSelectorSettingsValue & {
@@ -195,12 +213,9 @@ export type ModeSelectorSettings = Readonly<{
       'mode'
     >
   >;
-}>;
+}> & S.Schema.To<typeof ModeSettings>;
 
-export type ModeSelectorState<M extends Mode> = Readonly<{
-  selected: M;
-  settings: ModeSelectorSettings;
-}>;
+export type ModeSelectorState = Readonly<S.Schema.To<typeof ModeSettings>>;
 
 export const modeSelectorState0 = Object.freeze({
   selected: DEFAULT_MODE,
@@ -211,10 +226,10 @@ export const modeSelectorState0 = Object.freeze({
       rounds: DEFAULT_ROUNDS,
     }),
   }),
-}) satisfies ModeSelectorState<SimpleMode>;
+}) satisfies ModeSelectorState;
 
 const selectorToProgram = (
-  selector: ModeSelectorState<Mode>
+  selector: ModeSelectorState
 ): ProgramPerMode[typeof selector.selected] => {
   const settings = selector.settings[selector.selected];
   switch (selector.selected) {
