@@ -29,7 +29,10 @@
     "@react-native-picker/picker": "*",
     "react-native-picker-select": "*",
     "expo-av": "*",
-    "expo-asset": "*"
+    "expo-asset": "*",
+    "@effect/schema": "*",
+    "@react-native-async-storage/async-storage": "*",
+    "react-hook-form": "*"
   },
   "scripts": {
     "eas-build-pre-install": "cd ../ && node tools/scripts/eas-build-pre-install.mjs . reference-react-native-app && cp package-lock.json reference-react-native-app",

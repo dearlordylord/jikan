@@ -1,0 +1,29 @@
+{
+  "name": "ui-react-utils",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "ui-react-utils/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/ui-react-utils",
+        "main": "ui-react-utils/src/index.ts",
+        "tsConfig": "ui-react-utils/tsconfig.lib.json",
+        "assets": ["ui-react-utils/*.md"]
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "ui-react-utils/jest.config.ts"
+      }
+    }
+  },
+  "tags": []
+}

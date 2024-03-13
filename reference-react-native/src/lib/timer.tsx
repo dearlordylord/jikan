@@ -15,6 +15,8 @@ import { Button } from 'react-native-paper';
 import RNPickerSelect from 'react-native-picker-select';
 import { SoundsProvider, useSoundsContext } from './audio';
 import { useSoundTick } from './soundTick';
+import { Component as Settings } from './settings/view';
+import { useOnAction } from '@jikan0/ui-react-utils';
 
 const NoSleepy = () => {
   useKeepAwake();
@@ -62,17 +64,6 @@ const showRunningStage = (uiState: ui.State) =>
     )
     .exhaustive();
 
-const useOnAction = ({
-  setUiState,
-  uiState,
-}: {
-  setUiState: (state: ui.State) => void;
-  uiState: ui.State;
-}) =>
-  useCallback(
-    (action: ui.Action) => setUiState(ui.reduce(action)(uiState)),
-    [setUiState, uiState]
-  );
 
 const Controls = ({
   setUiState,
@@ -110,9 +101,7 @@ const Controls = ({
   );
 };
 
-const MAX_ROUNDS = 50;
-
-const Settings = ({
+const Settings_ = ({
   setUiState,
   uiState,
 }: {
@@ -120,35 +109,20 @@ const Settings = ({
   uiState: ui.State;
 }) => {
   const view = useMemo(() => ui.view(uiState), [uiState]);
+
+
+  const mode = view.modeSelector.value.mode;
   const onAction = useOnAction({
     setUiState,
     uiState,
   });
-  const makeOnChange =
-    (
-      makeAction: ModeSelectorSettingViewModeActions<'simple'>[keyof ModeSelectorSettingViewModeActions<'simple'>]
-    ) =>
-    (n: number) => {
-      const v = BigInt(n);
-      onAction(makeAction(v));
-    };
-  const mode = view.modeSelector.value.mode;
   return (
     <View>
       {view.running === 'stopped'
         ? ((value, actions) => (
             <View>
-              <View>
-                <Text>Rounds:</Text>
-                <RNPickerSelect
-                  value={Number(value.rounds)}
-                  onValueChange={makeOnChange(actions.setRounds)}
-                  items={Array.from(
-                    { length: MAX_ROUNDS },
-                    (_, i) => i + 1
-                  ).map((i) => ({ label: String(i), value: i }))}
-                />
-              </View>
+              <Settings settings={view.modeSelector.value} actions={view.modeSelector.actions} onAction={onAction} />
+
               {/*<label>*/}
               {/*  exercise time ms:{' '}*/}
               {/*  <input*/}
@@ -190,7 +164,7 @@ function ReactNativeTimer_() {
     <View style={{ justifyContent: 'center', flex: 1 }}>
       {showRunningStage(uiState)}
       <Controls setUiState={setUiState} uiState={uiState} />
-      <Settings setUiState={setUiState} uiState={uiState} />
+      <Settings_ setUiState={setUiState} uiState={uiState} />
     </View>
   );
 }

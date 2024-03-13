@@ -3,12 +3,10 @@
   "compilerOptions": {
     "rootDir": ".",
     "strict": true,
-    "exactOptionalPropertyTypes": true,
     "sourceMap": true,
     "declaration": false,
     "moduleResolution": "node",
     "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
     "importHelpers": true,
     "target": "es2015",
     "module": "esnext",
@@ -25,6 +23,7 @@
       "@jikan0/reference-react-native": ["reference-react-native/src/index.ts"],
       "@jikan0/test-utils": ["test-utils/src/index.ts"],
       "@jikan0/ui": ["ui/src/index.ts"],
+      "@jikan0/ui-react-utils": ["ui-react-utils/src/index.ts"],
       "@jikan0/utils": ["utils/src/index.ts"],
       "jikan0": ["facade/src/index.ts"]
     }
