@@ -4,11 +4,8 @@ import {
   ModeSelectorSettingViewModeActions
 } from '@jikan0/ui';
 import React from 'react';
-import { Button, SafeAreaView, Text, TextInput, View } from 'react-native';
-import { Controller, useForm } from 'react-hook-form';
-import { flow } from 'effect';
+import { SafeAreaView, Text, View } from 'react-native';
 import RNPickerSelect from 'react-native-picker-select';
-import { useOnAction } from '@jikan0/ui-react-utils';
 import * as ui from '@jikan0/ui';
 
 

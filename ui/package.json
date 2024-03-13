@@ -5,7 +5,8 @@
     "tslib": "^2.3.0",
     "@jikan0/fsm": "*",
     "@jikan0/utils": "*",
-    "@rimbu/core": "^2.0.0"
+    "@rimbu/core": "^2.0.0",
+    "@effect/schema": "^0.63.2"
   },
   "type": "commonjs",
   "main": "./src/index.js",
