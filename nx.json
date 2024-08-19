@@ -53,6 +53,11 @@
       "cache": true,
       "dependsOn": ["^build"],
       "inputs": ["production", "^production"]
+    },
+    "@nx/vite:build": {
+      "cache": true,
+      "dependsOn": ["^build"],
+      "inputs": ["production", "^production"]
     }
   },
   "namedInputs": {
@@ -75,10 +80,10 @@
   "generators": {
     "@nx/react": {
       "application": {
+        "babel": true,
         "style": "styled-components",
         "linter": "eslint",
-        "bundler": "vite",
-        "babel": true
+        "bundler": "vite"
       },
       "library": {
         "style": "styled-components",
