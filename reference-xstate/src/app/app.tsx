@@ -3,7 +3,7 @@ import { createBrowserInspector } from '@statelyai/inspect';
 
 import { match, P } from 'ts-pattern';
 import { timerMachine } from './timerMachine';
-import { useMachine } from '@xstate/react';
+import { useActorRef, useMachine } from '@xstate/react';
 import { useCallback, useEffect, useState } from 'react';
 import { screenMachine } from './screenMachine';
 
@@ -33,22 +33,25 @@ const constant = <T, >(t: T): () => T => () => t;
 const {inspect} = createBrowserInspector();
 
 export function App() {
-  const [state, send] = useMachine(timerMachine, {
+  const [state, send, actor] = useMachine(timerMachine, {
     inspect
   });
-  const [screenState, sendScreen] = useMachine(screenMachine, {
+  const [screenState, sendScreen, screenActor] = useMachine(screenMachine, {
     inspect
   });
   useEffect(() => {
-    const eventType = match(state.value)
-      .with(P.union('exercise', 'rest', 'preparation'), constant('TIMER_ACTIVE' as const))
-      .with('stopped', constant('TIMER_STOPPED' as const))
-      .with('paused', constant('TIMER_PAUSED' as const))
-      .exhaustive();
-    sendScreen({
-      type: eventType
+    const sub = actor.subscribe(({value}) => {
+      const screenEventType = match(value)
+        .with(P.union('exercise', 'rest', 'preparation'), constant('TIMER_ACTIVE' as const))
+        .with('stopped', constant('TIMER_STOPPED' as const))
+        .with('paused', constant('TIMER_PAUSED' as const))
+        .exhaustive();
+      screenActor.send({
+        type: screenEventType
+      });
     });
-  }, [state.value, sendScreen]);
+    return () => sub.unsubscribe();
+  }, [actor, screenActor]);
   const minuteTick = () => tick(60000);
   const start = () => send({
     type: 'START'
@@ -94,23 +97,3 @@ export function App() {
 }
 
 export default App;
-
-type State = { ms: number, lightOn: boolean };
-const initialState = {ms: 0, lightOn: false};
-type Event = { type: 'TIME_PASSED'; ms: number };
-
-const reduce = (event: Event) => (state: State): State => ((newMs) => ((toggle) => toggle ? {
-  // ignore remaining time for simplicity
-  ms: 0,
-  lightOn: !state.lightOn
-} : {
-  ...state,
-  ms: newMs
-})(newMs >= 3000))(event.ms + state.ms);
-
-let state = initialState;
-
-setInterval(() => {
-  state = reduce({type: 'TIME_PASSED', ms: 1000})(state);
-  console.log('lights on:', state.lightOn);
-}, 1000);
