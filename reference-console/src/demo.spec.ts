@@ -4,8 +4,8 @@ it('measures delayed wakes, flushes pause, excludes paused time and cleans up on
   let now = 0;
   let wake = () => {};
   const cancel = jest.fn();
-  const render = jest.fn();
-  const transition = jest.fn();
+  const render = jest.fn<void, [string]>();
+  const transition = jest.fn<void, [string]>();
   const close = jest.fn();
   const demo = createTerminalDemo({
     render,
@@ -47,8 +47,8 @@ it('emits each crossed stage once, completes, restarts and ignores stale callbac
   let now = 0;
   const wakes: (() => void)[] = [];
   const cancel = jest.fn();
-  const render = jest.fn();
-  const transition = jest.fn();
+  const render = jest.fn<void, [string]>();
+  const transition = jest.fn<void, [string]>();
   const demo = createTerminalDemo({
     render,
     transition,
@@ -84,9 +84,7 @@ it('emits each crossed stage once, completes, restarts and ignores stale callbac
     'rest',
     'exercise',
   ]);
-  expect(render).toHaveBeenLastCalledWith(
-    'completed\n[s] start  [q] quit'
-  );
+  expect(render).toHaveBeenLastCalledWith('completed\n[s] start  [q] quit');
   expect(cancel).toHaveBeenCalledTimes(1);
   const calls = render.mock.calls.length;
   now = 500000;
@@ -104,7 +102,7 @@ it('emits each crossed stage once, completes, restarts and ignores stale callbac
 });
 
 it('reports unavailable and unknown input without starting a clock', () => {
-  const render = jest.fn();
+  const render = jest.fn<void, [string]>();
   const schedule = jest.fn(() => jest.fn());
   const demo = createTerminalDemo({
     render,

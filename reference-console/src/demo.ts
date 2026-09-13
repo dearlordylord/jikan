@@ -79,7 +79,7 @@ export const createTerminalDemo = (options: TerminalDemoOptions) => {
         return;
       }
       if (key === 'p' && !driver.pause().ok) return;
-      if ((key === 's' || key === 'x') && !driver.restart().ok) return;
+      if (key === 's' && !driver.restart().ok) return;
       if ((key === 's' || key === 'c') && !driver.start().ok) return;
       dispatch(button.onClick);
     },

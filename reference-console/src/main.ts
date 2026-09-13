@@ -1,12 +1,7 @@
 import terminal from 'terminal-kit';
 import { createTerminalDemo } from './demo';
 
-const main = () => {
-  if (!process.stdin.isTTY || !process.stdout.isTTY) {
-    process.stderr.write('The terminal demo needs an interactive terminal.\n');
-    process.exitCode = 1;
-    return;
-  }
+export const runTerminalDemo = () => {
   const term = terminal.terminal;
   const demo = createTerminalDemo({
     render: (text) => {
@@ -33,4 +28,9 @@ const main = () => {
   process.on('SIGINT', demo.close);
 };
 
-if (require.main === module) main();
+if (require.main === module) {
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+    process.stderr.write('The terminal demo needs an interactive terminal.\n');
+    process.exitCode = 1;
+  } else runTerminalDemo();
+}
