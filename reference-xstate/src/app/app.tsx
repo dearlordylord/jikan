@@ -33,14 +33,14 @@ const constant = <T, >(t: T): () => T => () => t;
 const {inspect} = createBrowserInspector();
 
 export function App() {
-  const [state, send, actor] = useMachine(timerMachine, {
+  const [state, send, timerActor] = useMachine(timerMachine, {
     inspect
   });
   const [screenState, sendScreen, screenActor] = useMachine(screenMachine, {
     inspect
   });
   useEffect(() => {
-    const sub = actor.subscribe(({value}) => {
+    const sub = timerActor.subscribe(({value}) => {
       const screenEventType = match(value)
         .with(P.union('exercise', 'rest', 'preparation'), constant('TIMER_ACTIVE' as const))
         .with('stopped', constant('TIMER_STOPPED' as const))
@@ -51,7 +51,7 @@ export function App() {
       });
     });
     return () => sub.unsubscribe();
-  }, [actor, screenActor]);
+  }, [timerActor, screenActor]);
   const minuteTick = () => tick(60000);
   const start = () => send({
     type: 'START'
