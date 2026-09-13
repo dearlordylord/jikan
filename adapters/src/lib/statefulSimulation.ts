@@ -15,7 +15,7 @@ import {
   validateDuration,
 } from '@jikan0/fsm';
 import type { ElapsedDriverResult } from './elapsedDriver';
-import { createElapsedDriver } from './elapsedDriver';
+import { createElapsedDriver, intervalScheduler } from './elapsedDriver';
 
 export type StatefulSimulationOpts = {
   leniency?: number;
@@ -87,12 +87,7 @@ export class StatefulSimulation<Kind extends string = string> {
     this.#state0 = this.#state;
     this.#driver = createElapsedDriver({
       ...(opts.now === undefined ? {} : { now: opts.now }),
-      schedule:
-        opts.schedule ??
-        ((callback) => {
-          const handle = setInterval(callback, this.leniency);
-          return () => clearInterval(handle);
-        }),
+      schedule: opts.schedule ?? intervalScheduler(this.leniency),
       onElapsed: (elapsed) => {
         const result = this.advance(elapsed);
         if (result.ok && this.isEmpty() && this.stopOnEmpty) this.stop();
