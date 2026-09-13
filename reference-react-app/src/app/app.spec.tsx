@@ -1,15 +1,22 @@
-import { render } from '@testing-library/react';
-
+import { fireEvent, render, screen } from '@testing-library/react';
+import { StrictMode } from 'react';
 import App from './app';
 
-describe('App', () => {
-  it('should render successfully', () => {
-    const { baseElement } = render(<App />);
-    expect(baseElement).toBeTruthy();
-  });
-
-  it('should have a greeting as the title', () => {
-    const { getByText } = render(<App />);
-    expect(getByText(/Welcome reference-react-app/gi)).toBeTruthy();
-  });
+it('runs the workout controls from the application under StrictMode', () => {
+  const app = render(
+    <StrictMode>
+      <App />
+    </StrictMode>
+  );
+  expect(screen.getByRole('main')).toBeTruthy();
+  expect(screen.getByRole('status').textContent).toBe('Ready');
+  fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+  expect(screen.getByRole('status').textContent).toContain('Preparation');
+  fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
+  expect(screen.getByRole('status').textContent).toContain('Paused');
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  expect(screen.getByRole('status').textContent).toContain('Running');
+  fireEvent.click(screen.getByRole('button', { name: 'Stop' }));
+  expect(screen.getByRole('status').textContent).toBe('Ready');
+  app.unmount();
 });

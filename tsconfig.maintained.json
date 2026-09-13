@@ -29,6 +29,7 @@
     "reference-react/src/**/*.ts",
     "reference-react/src/**/*.tsx",
     "reference-react-app/src/**/*.ts",
-    "reference-react-app/src/**/*.tsx"
+    "reference-react-app/src/**/*.tsx",
+    "reference-console/src/**/*.ts"
   ]
 }

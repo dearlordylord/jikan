@@ -1,5 +1,7 @@
 module.exports = {
   projects: [
+    '<rootDir>/reference-react-app/jest.config.ts',
+    '<rootDir>/reference-console/jest.config.ts',
     '<rootDir>/utils/jest.config.ts',
     '<rootDir>/fsm/jest.config.ts',
     '<rootDir>/adapters/jest.config.ts',

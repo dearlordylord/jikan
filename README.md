@@ -11,6 +11,6 @@ npm run dev # http://localhost:4200
 Use Node.js 24. See [development](docs/development.md), [core](fsm/README.md),
 [workouts](ui/README.md), [adapters](adapters/README.md), and [React](react/README.md).
 
-Deferred: [demo modernization](https://github.com/dearlordylord/jikan/issues/7),
-[metronome](https://github.com/dearlordylord/jikan/issues/8),
-[terminal](reference-console/README.md), and [native](reference-react-native/README.md).
+Demos: [web](reference-react/README.md), [terminal](reference-console/README.md).
+
+Deferred: [metronome](https://github.com/dearlordylord/jikan/issues/8) and [native](reference-react-native/README.md).
