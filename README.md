@@ -1,10 +1,19 @@
-exercise timers as immutable state machines on Typescript
+Exercise timers as immutable state machines in TypeScript. Applications own workout
+state; pure models return explicit validation results and ordered transition facts.
+Optional adapters supply scheduling and framework integration.
 
-[fsm README.md](fsm/README.md) - core logic
+```sh
+npm ci --ignore-scripts --no-audit --no-fund
+npm run check
+npm run dev
+```
 
-[adapters README.md](adapters/README.md) - stateful OO adapters for OO lib users
-
-[react README.md](react/README.md) - react hook(s)
+Use Node.js 24. The browser demo runs at http://localhost:4200.
+See [maintained commands and runnable examples](docs/development.md),
+[core API](fsm/README.md), [optional timer adapter](adapters/README.md),
+[workout model](ui/README.md), and [React hooks](react/README.md).
+CI checks the documented library/web scope; native and experimental XState
+projects retain separate legacy workflows.
 
 TODO keywords: immutable/functional, (optionally) deterministic, 0 dependency, timer with time concern separated/abstracted away
 

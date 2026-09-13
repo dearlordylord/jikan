@@ -1,0 +1,27 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "types": ["node", "jest", "vite/client"],
+    "isolatedModules": true
+  },
+  "include": [
+    "utils/src/**/*.ts",
+    "fsm/src/**/*.ts",
+    "adapters/src/**/*.ts",
+    "facade/src/**/*.ts",
+    "test-utils/src/**/*.ts",
+    "ui/src/**/*.ts",
+    "react/src/**/*.ts",
+    "react/src/**/*.tsx",
+    "react-time-gremlin/src/**/*.ts",
+    "ui-react-utils/src/**/*.ts",
+    "reference-react/src/**/*.ts",
+    "reference-react/src/**/*.tsx",
+    "reference-react-app/src/**/*.ts",
+    "reference-react-app/src/**/*.tsx"
+  ]
+}

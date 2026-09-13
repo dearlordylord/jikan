@@ -2,7 +2,16 @@
   "name": "@jikan0/source",
   "version": "1.2.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.maintained.json",
+    "lint": "eslint --no-eslintrc --config .eslintrc.maintained.cjs --no-ignore --max-warnings=0 \"{utils,fsm,adapters,facade,test-utils,ui,react,react-time-gremlin,ui-react-utils,reference-react,reference-react-app}/src/**/*.{ts,tsx}\"",
+    "test": "jest --config jest.maintained.config.cjs --runInBand",
+    "build": "tsc -p tsconfig.maintained-build.json && tsc-alias -p tsconfig.maintained-build.json && vite build --config vite.maintained.config.ts",
+    "dev": "vite --config vite.maintained.config.ts",
+    "preview": "vite preview --config vite.maintained.config.ts",
+    "check": "npm run typecheck && npm run lint && npm test && npm run build",
+    "prebuild": "node -e \"require('node:fs').rmSync('dist/maintained', { recursive: true, force: true })\""
+  },
   "private": true,
   "dependencies": {
     "@effect/schema": "^0.63.2",

@@ -6,10 +6,15 @@ import {
   empty as fsmState0,
   isEmpty,
 } from '@jikan0/fsm';
-import { lastRNEA, pipe } from '@jikan0/utils';
-import { Deep } from '@rimbu/core';
-import * as S from "@effect/schema/Schema";
-
+import { lastRNEA } from '@jikan0/utils';
+import {
+  MAX_DURATION,
+  MAX_PROGRAM_STAGES,
+  QueueItem,
+  TransitionResult,
+  ValidationIssue,
+} from '@jikan0/fsm';
+import * as S from '@effect/schema/Schema';
 
 // TODO program library
 // TODO fp eslint
@@ -48,10 +53,10 @@ export const ContinueClickedEvent = (): ContinueClickedEvent => ({
 
 export type TimePassedEvent = {
   _tag: 'TimePassed';
-  timeMs: bigint;
+  timeMs: NumericInput;
 };
 
-export const TimePassedEvent = (timeMs: bigint): TimePassedEvent => ({
+export const TimePassedEvent = (timeMs: NumericInput): TimePassedEvent => ({
   _tag: 'TimePassed',
   timeMs,
 });
@@ -83,11 +88,11 @@ export const ModeSelectedEvent = <M extends Mode>(
 
 export type SimpleModeExerciseTimeSelectedEvent = {
   _tag: 'SimpleModeExerciseTimeSelected';
-  exerciseTimeMs: bigint;
+  exerciseTimeMs: NumericInput;
 };
 
 export const MakeSimpleModeExerciseTimeSelectedEvent = (
-  exerciseTimeMs: bigint
+  exerciseTimeMs: NumericInput
 ): SimpleModeExerciseTimeSelectedEvent => ({
   _tag: 'SimpleModeExerciseTimeSelected',
   exerciseTimeMs,
@@ -95,11 +100,11 @@ export const MakeSimpleModeExerciseTimeSelectedEvent = (
 
 export type SimpleModeRestTimeSelectedEvent = {
   _tag: 'SimpleModeRestTimeSelected';
-  restTimeMs: bigint;
+  restTimeMs: NumericInput;
 };
 
 export const MakeSimpleModeRestTimeSelectedEvent = (
-  restTimeMs: bigint
+  restTimeMs: NumericInput
 ): SimpleModeRestTimeSelectedEvent => ({
   _tag: 'SimpleModeRestTimeSelected',
   restTimeMs,
@@ -107,11 +112,11 @@ export const MakeSimpleModeRestTimeSelectedEvent = (
 
 export type SimpleModeRoundsSelectedEvent = {
   _tag: 'SimpleModeRoundsSelected';
-  rounds: bigint;
+  rounds: NumericInput;
 };
 
 export const MakeSimpleModeRoundsSelectedEvent = (
-  rounds: bigint
+  rounds: NumericInput
 ): SimpleModeRoundsSelectedEvent => ({
   _tag: 'SimpleModeRoundsSelected',
   rounds,
@@ -133,6 +138,7 @@ export type Action = Event;
 const RUNNING_STATE_RUNNING = 'running' as const;
 const RUNNING_STATE_PAUSED = 'paused' as const;
 const RUNNING_STATE_STOPPED = 'stopped' as const;
+const RUNNING_STATE_COMPLETED = 'completed' as const;
 type RunningStateRunning = typeof RUNNING_STATE_RUNNING;
 type RunningStatePaused = typeof RUNNING_STATE_PAUSED;
 type RunningStateStopped = typeof RUNNING_STATE_STOPPED;
@@ -141,6 +147,7 @@ const RUNNING_STATES = [
   RUNNING_STATE_RUNNING,
   RUNNING_STATE_PAUSED,
   RUNNING_STATE_STOPPED,
+  RUNNING_STATE_COMPLETED,
 ] as const;
 
 type RunningState = (typeof RUNNING_STATES)[number];
@@ -168,14 +175,14 @@ type ViewActiveValue = {
 };
 
 export type State<M extends Mode = Mode> = {
-  mode: ModeSelectorState & {selected: M};
+  mode: ModeSelectorState & { selected: M };
 } & (
   | {
       running: RunningStateRunning | RunningStatePaused;
       fsmState: NonEmptyFsmState<StepPerMode[M]>;
     }
   | {
-      running: RunningStateStopped;
+      running: RunningStateStopped | typeof RUNNING_STATE_COMPLETED;
     }
 );
 
@@ -185,12 +192,10 @@ export const SimpleModeSettings = S.struct({
   rounds: S.bigint,
 });
 
-
 export type ModeSelectorSettingsValue = {
   mode: Mode;
 } & ({
   mode: SimpleMode;
-
 } & S.Schema.To<typeof SimpleModeSettings>);
 
 export const ModesSettings = S.struct({
@@ -213,7 +218,8 @@ export type ModesSettings = Readonly<{
       'mode'
     >
   >;
-}> & S.Schema.To<typeof ModeSettings>;
+}> &
+  S.Schema.To<typeof ModeSettings>;
 
 export type ModeSelectorState = Readonly<S.Schema.To<typeof ModeSettings>>;
 
@@ -230,7 +236,7 @@ export const modeSelectorState0 = Object.freeze({
 
 const selectorToProgram = (
   selector: ModeSelectorState
-): ProgramPerMode[typeof selector.selected] => {
+): ReturnType<typeof simpleModeSelectorToProgram> => {
   const settings = selector.settings[selector.selected];
   switch (selector.selected) {
     case SIMPLE_MODE: {
@@ -256,12 +262,6 @@ export const SIMPLE_PROGRAM_STEPS = [
 
 export type SimpleProgramStep = (typeof SIMPLE_PROGRAM_STEPS)[number];
 
-type ProgramPerMode = {
-  [k in Mode]: Program<string>;
-} & {
-  [SIMPLE_MODE]: Program<SimpleProgramStep>;
-};
-
 type StepPerMode = {
   [k in Mode]: string;
 } & {
@@ -275,23 +275,89 @@ const PREPARATION_STEPS_SIMPLE = [
   },
 ] as const;
 
+export type NumericInput = bigint | number | string;
+// Two stages per round (preparation replaces final rest) fit the core's bound.
+export const MAX_ROUNDS = BigInt(Math.floor(MAX_PROGRAM_STAGES / 2));
+export const MAX_WORKOUT_DURATION_MS = BigInt(MAX_DURATION);
+
+const numeric = (
+  input: NumericInput,
+  path: string,
+  minimum: bigint,
+  maximum: bigint
+):
+  | { ok: true; value: bigint }
+  | { ok: false; issues: readonly ValidationIssue[] } => {
+  const fail = (message: string) => ({
+    ok: false as const,
+    issues: [{ path, code: 'invalid-number', message }],
+  });
+  if (typeof input === 'number' && !Number.isSafeInteger(input))
+    return fail('Enter a whole, safely representable number.');
+  if (
+    typeof input !== 'bigint' &&
+    typeof input !== 'number' &&
+    typeof input !== 'string'
+  )
+    return fail('Enter a whole number.');
+  if (typeof input === 'string' && !/^[+-]?\d+$/.test(input))
+    return fail('Enter a whole number.');
+  // Reject huge text before attempting an unbounded bigint conversion.
+  if (typeof input === 'string' && input.length > 17)
+    return fail(`Enter a value between ${minimum} and ${maximum}.`);
+  const value = BigInt(input);
+  return value < minimum || value > maximum
+    ? fail(`Enter a value between ${minimum} and ${maximum}.`)
+    : { ok: true, value };
+};
+
 export const simpleModeSelectorToProgram = (
   settings: Omit<ModeSelectorSettingsValue & { mode: SimpleMode }, 'mode'>
-): ProgramPerMode[SimpleMode] =>
-  Object.freeze(
-    [...Array(Number(settings.rounds)).keys()].flatMap((i) => [
-      ...(i === 0 ? PREPARATION_STEPS_SIMPLE : ([] as const)),
-      { kind: EXERCISE_STEP, duration: Number(settings.exerciseTimeMs) },
-      ...(Number(settings.rounds) === i + 1
-        ? ([] as const)
-        : [{ kind: REST_STEP, duration: Number(settings.restTimeMs) }]),
-    ])
-  ) as ProgramPerMode[SimpleMode];
+):
+  | { ok: true; program: Program<SimpleProgramStep> }
+  | { ok: false; issues: readonly ValidationIssue[] } => {
+  const rounds = numeric(settings.rounds, 'rounds', BigInt(1), MAX_ROUNDS);
+  const exercise = numeric(
+    settings.exerciseTimeMs,
+    'exerciseTimeMs',
+    BigInt(1),
+    MAX_WORKOUT_DURATION_MS
+  );
+  const rest = numeric(
+    settings.restTimeMs,
+    'restTimeMs',
+    BigInt(0),
+    MAX_WORKOUT_DURATION_MS
+  );
+  if (!rounds.ok || !exercise.ok || !rest.ok)
+    return {
+      ok: false,
+      issues: [rounds, exercise, rest].flatMap((result) =>
+        result.ok ? [] : result.issues
+      ),
+    };
+  const program: QueueItem<SimpleProgramStep>[] = [...PREPARATION_STEPS_SIMPLE];
+  for (let i = BigInt(0); i < rounds.value; i++) {
+    program.push({ kind: EXERCISE_STEP, duration: Number(exercise.value) });
+    if (rest.value > BigInt(0) && i + BigInt(1) < rounds.value)
+      program.push({ kind: REST_STEP, duration: Number(rest.value) });
+  }
+  return {
+    ok: true,
+    program: Object.freeze(program) as Program<SimpleProgramStep>,
+  };
+};
 
 const simpleModeStateToStats = (
-  s: NonEmptyFsmState<SimpleProgramStep>
+  s: NonEmptyFsmState<SimpleProgramStep>,
+  rounds: bigint
 ): TimerStatsCurrent<SimpleProgramStep> => ({
-  current: BigInt(s.queue.filter((x) => x.kind === EXERCISE_STEP).length),
+  current:
+    lastRNEA(s.queue).kind === PREPARATION_STEP
+      ? BigInt(0)
+      : rounds -
+        BigInt(s.queue.filter((x) => x.kind === EXERCISE_STEP).length) +
+        (lastRNEA(s.queue).kind === EXERCISE_STEP ? BigInt(1) : BigInt(0)),
   kind: lastRNEA(s.queue).kind,
   leftMs: BigInt(s.duration),
   totalMs: BigInt(lastRNEA(s.queue).duration),
@@ -355,9 +421,10 @@ export type ViewValue<R extends RunningState = RunningState> =
           stopButton: ActiveButton<StopClickedEvent>;
           pauseButton: InactiveButton;
           continueButton: ActiveButton<ContinueClickedEvent>;
+          timerStats: TimerStats;
         }
       | {
-          running: 'stopped';
+          running: 'stopped' | 'completed';
           startButton: ActiveButton<StartClickedEvent>;
           stopButton: InactiveButton;
           pauseButton: InactiveButton;
@@ -402,7 +469,10 @@ export const view = <M extends Mode = Mode>(state: State<M>): ViewValue => {
         timerStats: {
           // dupe but it's a "view"!
           rounds: modeSelectorValue.rounds,
-          round: simpleModeStateToStats(state.fsmState),
+          round: simpleModeStateToStats(
+            state.fsmState,
+            modeSelectorValue.rounds
+          ),
         },
       };
     }
@@ -426,8 +496,16 @@ export const view = <M extends Mode = Mode>(state: State<M>): ViewValue => {
         modeSelector: {
           value: modeSelectorValue,
         },
+        timerStats: {
+          rounds: modeSelectorValue.rounds,
+          round: simpleModeStateToStats(
+            state.fsmState,
+            modeSelectorValue.rounds
+          ),
+        },
       };
     }
+    case RUNNING_STATE_COMPLETED:
     case RUNNING_STATE_STOPPED: {
       return {
         running: state.running,
@@ -455,132 +533,119 @@ export const view = <M extends Mode = Mode>(state: State<M>): ViewValue => {
 
 export const reduce =
   (action: Action) =>
-  (state: State): State => {
+  (state: State): TransitionResult<State, QueueItem> => {
+    const success = (
+      next: State = state,
+      effects: readonly QueueItem[] = []
+    ): TransitionResult<State, QueueItem> => ({
+      ok: true,
+      state: next,
+      effects,
+    });
+    const reject = (
+      issues: readonly ValidationIssue[]
+    ): TransitionResult<State, QueueItem> => ({
+      ok: false,
+      state,
+      issues,
+      effects: [],
+    });
     switch (action._tag) {
       case 'TimePassed': {
-        if (state.running !== 'running') return state;
-        const timeMs = Number(action.timeMs);
-        const fsmState = pipe(state.fsmState, tick(timeMs), ([s]) => s);
-        if (fsmState === state.fsmState) return state;
-        return isEmpty(fsmState)
-          ? {
-              ...state,
-              running: 'stopped',
-            }
-          : {
-              ...state,
-              fsmState,
-            };
+        const elapsed = numeric(
+          action.timeMs,
+          'timeMs',
+          BigInt(0),
+          MAX_WORKOUT_DURATION_MS
+        );
+        if (!elapsed.ok) return reject(elapsed.issues);
+        if (state.running !== 'running') return success();
+        const result = tick(Number(elapsed.value))(state.fsmState);
+        if (!result.ok) return reject(result.issues);
+        if (result.state === state.fsmState) return success();
+        return isEmpty(result.state)
+          ? success({ running: 'completed', mode: state.mode }, result.effects)
+          : success({ ...state, fsmState: result.state }, result.effects);
       }
       case 'StartClicked': {
         if (state.running === 'running' || state.running === 'paused')
-          return state;
+          return success();
         const program = selectorToProgram(state.mode);
-        return {
-          ...state,
-          running: 'running',
-          fsmState: pipe(
-            fsmState0,
-            push(program),
-            (s) =>
-              s as NonEmptyFsmState<StepPerMode[typeof state.mode.selected]>
-          ),
-        };
+        if (!program.ok) return reject(program.issues);
+        const result = push(program.program)<SimpleProgramStep>(fsmState0);
+        if (!result.ok) return reject(result.issues);
+        if (isEmpty(result.state))
+          return reject([
+            {
+              path: 'program',
+              code: 'empty-program',
+              message: 'A workout must contain exercise.',
+            },
+          ]);
+        return success(
+          { mode: state.mode, running: 'running', fsmState: result.state },
+          result.effects
+        );
       }
-      case 'StopClicked': {
-        if (state.running === 'stopped') return state;
-        return {
-          ...state,
-          running: 'stopped',
-        };
-      }
-      case 'PauseClicked': {
-        if (state.running === 'stopped' || state.running === 'paused')
-          return state;
-        return {
-          ...state,
-          running: 'paused',
-        };
-      }
-      case 'ContinueClicked': {
-        if (state.running === 'stopped' || state.running === 'running')
-          return state;
-        return {
-          ...state,
-          running: 'running',
-        };
-      }
-      case 'ModeSelected': {
-        if (state.mode.selected === action.mode) return state;
-        return Deep.patch(state, [
-          {
-            mode: [
-              {
-                selected: action.mode,
-              },
-            ],
-          },
-        ]);
-      }
-      case 'SimpleModeRoundsSelected': {
-        if (state.mode.selected !== SIMPLE_MODE) return state;
-        return Deep.patch(state, [
-          {
-            mode: [
-              {
-                settings: [
-                  {
-                    simple: [
-                      {
-                        rounds: action.rounds,
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-        ]);
-      }
-      case 'SimpleModeExerciseTimeSelected': {
-        if (state.mode.selected !== SIMPLE_MODE) return state;
-        return Deep.patch(state, [
-          {
-            mode: [
-              {
-                settings: [
-                  {
-                    simple: [
-                      {
-                        exerciseTimeMs: action.exerciseTimeMs,
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-        ]);
-      }
+      case 'StopClicked':
+        return state.running === 'running' || state.running === 'paused'
+          ? success({ running: 'stopped', mode: state.mode })
+          : success();
+      case 'PauseClicked':
+        return state.running === 'running'
+          ? success({ ...state, running: 'paused' })
+          : success();
+      case 'ContinueClicked':
+        return state.running === 'paused'
+          ? success({ ...state, running: 'running' })
+          : success();
+      case 'ModeSelected':
+        if (state.running === 'running' || state.running === 'paused')
+          return success();
+        if (action.mode !== SIMPLE_MODE)
+          return reject([
+            {
+              path: 'mode',
+              code: 'invalid-mode',
+              message: 'Select a supported mode.',
+            },
+          ]);
+        return success();
+      case 'SimpleModeRoundsSelected':
+      case 'SimpleModeExerciseTimeSelected':
       case 'SimpleModeRestTimeSelected': {
-        if (state.mode.selected !== SIMPLE_MODE) return state;
-        return Deep.patch(state, [
-          {
-            mode: [
-              {
-                settings: [
-                  {
-                    simple: [
-                      {
-                        restTimeMs: action.restTimeMs,
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
+        if (state.running === 'running' || state.running === 'paused')
+          return success();
+        const field =
+          action._tag === 'SimpleModeRoundsSelected'
+            ? 'rounds'
+            : action._tag === 'SimpleModeExerciseTimeSelected'
+            ? 'exerciseTimeMs'
+            : 'restTimeMs';
+        const input =
+          action._tag === 'SimpleModeRoundsSelected'
+            ? action.rounds
+            : action._tag === 'SimpleModeExerciseTimeSelected'
+            ? action.exerciseTimeMs
+            : action.restTimeMs;
+        const value = numeric(
+          input,
+          field,
+          field === 'restTimeMs' ? BigInt(0) : BigInt(1),
+          field === 'rounds' ? MAX_ROUNDS : MAX_WORKOUT_DURATION_MS
+        );
+        if (!value.ok) return reject(value.issues);
+        if (state.mode.settings.simple[field] === value.value) return success();
+        return success({
+          ...state,
+          mode: {
+            ...state.mode,
+            settings: {
+              ...state.mode.settings,
+              simple: { ...state.mode.settings.simple, [field]: value.value },
+            },
           },
-        ]);
+        });
       }
     }
   };

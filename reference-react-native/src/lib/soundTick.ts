@@ -30,7 +30,7 @@ export const useSoundTick = () => {
           // last 3 seconds
         } else if (timeLeft <= BigInt(3000)) {
           // but also, the last second of the last round - give them a reward of 3 rings!
-          if (roundsLeft === BigInt(1) && timeLeft === BigInt(1000)) {
+          if (roundsLeft === BigInt(0) && timeLeft === BigInt(1000)) {
             beep('bell3');
           } else {
             beep('beep');

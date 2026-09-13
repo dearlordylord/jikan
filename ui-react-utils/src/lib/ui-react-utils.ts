@@ -1,14 +1,26 @@
 import * as ui from '@jikan0/ui';
-import { useCallback } from 'react';
+import { QueueItem, ValidationIssue } from '@jikan0/fsm';
+import { useCallback, useLayoutEffect, useRef } from 'react';
 
-export const useOnAction = ({
-                              setUiState,
-                              uiState,
-                            }: {
+/** Dispatch against the latest committed state; interpret effects after committing. */
+export const useOnAction = (options: {
   setUiState: (state: ui.State) => void;
   uiState: ui.State;
-}) =>
-  useCallback(
-    (action: ui.Action) => setUiState(ui.reduce(action)(uiState)),
-    [setUiState, uiState]
-  );
+  onTransition?: (effects: readonly QueueItem[]) => void;
+  onIssues?: (issues: readonly ValidationIssue[]) => void;
+}) => {
+  const state = useRef(options.uiState);
+  const latest = useRef(options);
+  useLayoutEffect(() => {
+    state.current = options.uiState;
+    latest.current = options;
+  });
+  return useCallback((action: ui.Action) => {
+    const result = ui.reduce(action)(state.current);
+    state.current = result.state;
+    latest.current.setUiState(result.state);
+    if (!result.ok) latest.current.onIssues?.(result.issues);
+    else if (result.effects.length) latest.current.onTransition?.(result.effects);
+    return result;
+  }, []);
+};

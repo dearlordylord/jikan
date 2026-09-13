@@ -1,181 +1,160 @@
-import styled from 'styled-components';
-import {
-  ChangeEvent,
-  FunctionComponent,
-  MouseEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import * as ui from '@jikan0/ui';
-import { match } from 'ts-pattern';
-import { ModeSelectorSettingViewModeActions, ViewValue } from '@jikan0/ui';
-import { useTimeGremlin } from '@jikan0/react-time-gremlin';
+import { TimeGremlinOptions, useTimeGremlin } from '@jikan0/react-time-gremlin';
 
-const StyledReferenceReact = styled.div`
-  color: pink;
-`;
-
-const runningStages: {
-  [k in ui.State['running']]: FunctionComponent<{
-    viewValue: ViewValue & {
-      running: k;
-    };
-  }>;
-} = {
-  running: ({ viewValue }) => (
-    <div>
-      Running: {viewValue.timerStats.round.kind}:{' '}
-      {Number(viewValue.timerStats.round.leftMs)} of{' '}
-      {Number(viewValue.timerStats.round.current)}/
-      {Number(viewValue.timerStats.rounds)}
-    </div>
-  ),
-  paused: () => <div>Paused</div>,
-  stopped: () => <div>Stopped</div>,
+export type ReferenceReactProps = {
+  timing?: Pick<TimeGremlinOptions, 'now' | 'schedule' | 'speed' | 'appetite'>;
+  onTransition?: TimeGremlinOptions['onTransition'];
 };
 
-const showRunningStage = (uiState: ui.State) =>
-  // TODO dry better?
-  match(ui.view(uiState))
-    .with({ running: 'running' }, (v) =>
-      runningStages.running({ viewValue: v })
-    )
-    .with({ running: 'paused' }, (v) => runningStages.paused({ viewValue: v }))
-    .with({ running: 'stopped' }, (v) =>
-      runningStages.stopped({ viewValue: v })
-    )
-    .exhaustive();
-
-const useOnAction = ({
-  setUiState,
-  uiState,
-}: {
-  setUiState: (state: ui.State) => void;
-  uiState: ui.State;
-}) =>
-  useCallback(
-    (action: ui.Action) => setUiState(ui.reduce(action)(uiState)),
-    [setUiState, uiState]
-  );
-
-const Controls = ({
-  setUiState,
-  uiState,
-}: {
-  setUiState: (state: ui.State) => void;
-  uiState: ui.State;
-}) => {
-  const view = useMemo(() => ui.view(uiState), [uiState]);
-  const onAction = useOnAction({
-    setUiState,
+export function ReferenceReact({ timing, onTransition }: ReferenceReactProps = {}) {
+  const transitionSink = useRef(onTransition);
+  useLayoutEffect(() => { transitionSink.current = onTransition; }, [onTransition]);
+  const [uiState, setUiState] = useState<ui.State>(ui.state0);
+  const committed = useRef(uiState);
+  const [issues, setIssues] = useState<
+    readonly { path: string; message: string }[]
+  >([]);
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const dispatch = useCallback((action: ui.Action) => {
+    const result = ui.reduce(action)(committed.current);
+    committed.current = result.state;
+    setUiState(result.state);
+    setIssues(result.ok ? [] : result.issues);
+    if (result.ok && result.effects.length) transitionSink.current?.(result.effects);
+  }, []);
+  const clock = useTimeGremlin({
+    ...timing,
     uiState,
+    setUiState,
+    dispatch,
+    onIssues: setIssues,
   });
-  const makeOnClick =
-    (action: ui.Action) => (e: MouseEvent<HTMLButtonElement>) => {
-      e.preventDefault();
-      onAction(action);
-    };
+  const view = ui.view(uiState);
+  const editable = view.running === 'stopped' || view.running === 'completed';
+  const settings = view.modeSelector.value;
+  const fields = [
+    {
+      key: 'rounds' as const,
+      label: 'rounds',
+      max: ui.MAX_ROUNDS,
+      min: 1,
+      action: ui.MakeSimpleModeRoundsSelectedEvent,
+    },
+    {
+      key: 'exerciseTimeMs' as const,
+      label: 'exercise time ms',
+      max: ui.MAX_WORKOUT_DURATION_MS,
+      min: 1,
+      action: ui.MakeSimpleModeExerciseTimeSelectedEvent,
+    },
+    {
+      key: 'restTimeMs' as const,
+      label: 'rest time ms',
+      max: ui.MAX_WORKOUT_DURATION_MS,
+      min: 0,
+      action: ui.MakeSimpleModeRestTimeSelectedEvent,
+    },
+  ];
+  const start = () => {
+    // Invalid drafts retain the valid settings; require correction before starting.
+    if (issues.length === 0 && clock.restart().ok) {
+      setDrafts({});
+      dispatch(ui.StartClickedEvent());
+    }
+  };
+  const stats =
+    view.running === 'running' || view.running === 'paused'
+      ? view.timerStats
+      : undefined;
   return (
     <div>
-      {view.startButton.active ? (
-        <button onClick={makeOnClick(view.startButton.onClick)}>Start</button>
-      ) : null}
-      {view.continueButton.active ? (
-        <button onClick={makeOnClick(view.continueButton.onClick)}>
+      <h1>Workout timer</h1>
+      <div role="status">
+        {view.running === 'stopped'
+          ? 'Ready'
+          : view.running === 'completed'
+          ? 'Completed'
+          : view.running === 'paused'
+          ? 'Paused'
+          : 'Running'}
+        {stats && (
+          <span>
+            :{' '}
+            {stats.round.kind === ui.PREPARATION_STEP
+              ? 'Preparation'
+              : `Round ${stats.round.current} of ${stats.rounds}: ${stats.round.kind}`}{' '}
+            — {stats.round.leftMs.toString()} ms remaining of{' '}
+            {stats.round.totalMs.toString()} ms
+          </span>
+        )}
+      </div>
+      {view.startButton.active && (
+        <button disabled={issues.length > 0} onClick={start}>
+          Start
+        </button>
+      )}
+      {view.pauseButton.active && (
+        <button
+          onClick={() => {
+            if (clock.pause().ok) dispatch(ui.PauseClickedEvent());
+          }}
+        >
+          Pause
+        </button>
+      )}
+      {view.continueButton.active && (
+        <button onClick={() => dispatch(ui.ContinueClickedEvent())}>
           Continue
         </button>
-      ) : null}
-      {view.pauseButton.active ? (
-        <button onClick={makeOnClick(view.pauseButton.onClick)}>Pause</button>
-      ) : null}
-      {view.stopButton.active ? (
-        <button onClick={makeOnClick(view.stopButton.onClick)}>Stop</button>
-      ) : null}
-    </div>
-  );
-};
-
-const Settings = ({
-  setUiState,
-  uiState,
-}: {
-  setUiState: (state: ui.State) => void;
-  uiState: ui.State;
-}) => {
-  const view = useMemo(() => ui.view(uiState), [uiState]);
-  const onAction = useOnAction({
-    setUiState,
-    uiState,
-  });
-  const makeOnChange =
-    (
-      makeAction: ModeSelectorSettingViewModeActions<'simple'>[keyof ModeSelectorSettingViewModeActions<'simple'>]
-    ) =>
-    (e: ChangeEvent<HTMLInputElement>) => {
-      e.preventDefault();
-      const v = BigInt(parseInt(e.target.value, 10));
-      onAction(makeAction(v));
-    };
-  const mode = view.modeSelector.value.mode;
-  return (
-    <div>
-      {view.running === 'stopped'
-        ? ((value, actions) => (
-            <div className="settings-stopped">
-              <label>
-                rounds:{' '}
-                <input
-                  type="number"
-                  step="1"
-                  min="1"
-                  value={Number(value.rounds)}
-                  onChange={makeOnChange(actions.setRounds)}
-                />
-              </label>
-              <label>
-                exercise time ms:{' '}
-                <input
-                  type="number"
-                  step="1000"
-                  min="1000"
-                  value={Number(value.exerciseTimeMs)}
-                  onChange={makeOnChange(actions.setExerciseTimeMs)}
-                />
-              </label>
-              <label>
-                rest time ms:{' '}
-                <input
-                  type="number"
-                  step="1000"
-                  min="1000"
-                  value={Number(value.restTimeMs)}
-                  onChange={makeOnChange(actions.setRestTimeMs)}
-                />
-              </label>
+      )}
+      {view.stopButton.active && (
+        <button
+          onClick={() => {
+            clock.restart();
+            dispatch(ui.StopClickedEvent());
+          }}
+        >
+          Stop
+        </button>
+      )}
+      <div>
+        {fields.map((field) => (
+          <label key={field.key}>
+            {field.label}:{' '}
+            <input
+              type="number"
+              step="1"
+              min={field.min}
+              max={field.max.toString()}
+              disabled={!editable}
+              value={drafts[field.key] ?? settings[field.key].toString()}
+              aria-invalid={issues.some((issue) => issue.path === field.key)}
+              onChange={(event) => {
+                const text = event.target.value;
+                setDrafts((previous) => ({ ...previous, [field.key]: text }));
+                const result = ui.reduce(field.action(text))(committed.current);
+                committed.current = result.state;
+                setUiState(result.state);
+                setIssues((previous) => [
+                  ...previous.filter((issue) => issue.path !== field.key),
+                  ...(result.ok ? [] : result.issues),
+                ]);
+              }}
+            />
+          </label>
+        ))}
+      </div>
+      {issues.length > 0 && (
+        <div role="alert">
+          {issues.map((issue) => (
+            <div key={issue.path}>
+              {issue.path}: {issue.message}
             </div>
-          ))(
-            view.modeSelector
-              .value /*TODO move setting values inside mode lock*/,
-            view.modeSelector.actions[mode]
-          )
-        : null}
+          ))}
+        </div>
+      )}
     </div>
-  );
-};
-
-export function ReferenceReact() {
-  const [uiState, setUiState] = useState(ui.state0);
-  useTimeGremlin({ uiState, setUiState });
-  // TODO mode select
-  return (
-    <StyledReferenceReact>
-      <h1>Welcome to ReferenceReact!</h1>
-      {showRunningStage(uiState)}
-      <Controls setUiState={setUiState} uiState={uiState} />
-      <Settings setUiState={setUiState} uiState={uiState} />
-    </StyledReferenceReact>
   );
 }
 

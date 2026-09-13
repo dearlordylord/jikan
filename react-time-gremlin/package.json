@@ -4,7 +4,8 @@
   "dependencies": {
     "tslib": "^2.3.0",
     "@jikan0/ui": "0.0.1",
-    "react": "18.2.0"
+    "react": "18.2.0",
+    "@jikan0/adapters": "^1.2.0"
   },
   "type": "commonjs",
   "main": "./src/index.js",

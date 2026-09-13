@@ -7,144 +7,211 @@ import {
   State,
   isEmpty,
   current,
-  eqQueueItem,
   Program,
+  TransitionResult,
+  ValidationIssue,
+  validateDuration,
 } from '@jikan0/fsm';
-import { assertExists, isEmptyRA } from '@jikan0/utils';
+import { createElapsedDriver, ElapsedDriverResult } from './elapsedDriver';
 
-const DEFAULT_OPTS = { leniency: 100 /*ms*/, stopOnEmpty: true } as const;
-export type StatefulSimulationOpts = typeof DEFAULT_OPTS;
-const SUSPICIOUSLY_TOO_MANY_LISTENERS = 100;
-const SUSPICIOUSLY_TOO_MANY_LISTENERS_MSG = (n: number) =>
-  `Suspiciously many listeners: ${n}. Please check that you clean up listener functions calling the cleanup function returned from onChange`;
-let isSuspiciouslyTooManyListenersReported = false;
-const checkTooManyListeners = (n: number) => {
-  if (
-    n >= SUSPICIOUSLY_TOO_MANY_LISTENERS &&
-    !isSuspiciouslyTooManyListenersReported
-  ) {
-    console.warn(SUSPICIOUSLY_TOO_MANY_LISTENERS_MSG(n));
-    isSuspiciouslyTooManyListenersReported = true;
-  }
+export type StatefulSimulationOpts = {
+  leniency?: number;
+  onChange?: (next: QueueItem | null) => void;
+  onValidation?: (issues: readonly ValidationIssue[]) => void;
+  onTransition?: (effects: readonly QueueItem[]) => void;
+  stopOnEmpty?: boolean;
+  now?: () => number;
+  schedule?: (callback: () => void) => () => void;
 };
 
-const areQueueItemsEqual = <QueueItemType extends string>(
-  a: QueueItem<QueueItemType> | null,
-  b: QueueItem<QueueItemType> | null
-): boolean => {
-  if (a === null && b === null) return true;
-  if (a === null || b === null) return false;
-  return eqQueueItem(b)(a);
-};
-
-export class StatefulSimulation<QueueItemType extends string = string> {
-  // set only thru #setState
-  #state = empty as State<QueueItemType>;
-  readonly #setState = (state1: State<QueueItemType>) => {
-    const queueItem = current(this.#state);
-    const nextQueueItem = current(state1);
-    this.#state = state1;
-    if (!areQueueItemsEqual(queueItem, nextQueueItem)) {
-      this.#reportQueueItem(nextQueueItem);
-    }
-  };
-  readonly #state0: State<QueueItemType>;
-  #intervalHandle: ReturnType<typeof setInterval> | null = null;
+/** Optional state owner for a general timer; workout state remains consumer-owned. */
+export class StatefulSimulation<Kind extends string = string> {
+  #state: State<Kind> = empty;
+  readonly #state0: State<Kind>;
+  readonly #validationListeners = new Set<
+    (issues: readonly ValidationIssue[]) => void
+  >();
+  readonly #transitionListeners = new Set<
+    (effects: readonly QueueItem<Kind>[]) => void
+  >();
+  readonly #listeners = new Set<(next: QueueItem<Kind> | null) => void>();
+  readonly #driver;
+  readonly #opts: StatefulSimulationOpts;
   readonly leniency: number;
   readonly stopOnEmpty: boolean;
-  isRunning =
-    () /*: this is {#intervalHandle: number} - not with ts classes.*/ =>
-      this.#intervalHandle !== null;
-  constructor(
-    queue: Program<QueueItemType> | readonly [],
-    opts: {
-      leniency?: number;
-      onChange?: (next: QueueItem | null) => void;
-      stopOnEmpty?: boolean;
-    } = DEFAULT_OPTS
-  ) {
-    const opts_ = { ...DEFAULT_OPTS, ...opts };
-    if (opts_.leniency <= 0) throw new Error('leniency must be positive');
-    if (!isEmptyRA(queue)) this.push(queue);
-    this.#state0 = this.#state;
-    this.leniency = opts_.leniency;
-    this.stopOnEmpty = opts_.stopOnEmpty;
-    // nb! not cleanable, should be fine as it exists together with the object lifetime and semantics seem to match the Constructor assumptions
-    if (opts_.onChange)
-      this.onChange(opts_.onChange, {
-        withCurrent: true,
-      });
-  }
-  readonly #changeListeners = new Map<
-    number,
-    (next: QueueItem<QueueItemType> | null) => void
-  >();
-  #nextListenerId = 1;
+  readonly initializationResult: TransitionResult<State<Kind>, QueueItem<Kind>>;
 
-  onChange = (
-    f: (next: QueueItem<QueueItemType> | null) => void,
-    opts: {
-      withCurrent: boolean;
-    } = {
-      withCurrent: true,
-    }
-  ): (() => void) => {
-    if (opts.withCurrent) f(this.current());
-    const listenerId = this.#nextListenerId;
-    this.#changeListeners.set(listenerId, f);
-    this.#nextListenerId = listenerId + 1;
-    checkTooManyListeners(this.#changeListeners.size);
+  static create<Kind extends string>(
+    queue: Program<Kind> | readonly [],
+    opts: StatefulSimulationOpts = {}
+  ):
+    | { ok: true; timer: StatefulSimulation<Kind> }
+    | {
+        ok: false;
+        state: State<Kind>;
+        issues: readonly ValidationIssue[];
+        effects: readonly [];
+      } {
+    const timer = new StatefulSimulation(queue, opts);
+    const result = timer.initializationResult;
+    return result.ok ? { ok: true, timer } : result;
+  }
+
+  constructor(
+    queue: Program<Kind> | readonly [],
+    opts: StatefulSimulationOpts = {}
+  ) {
+    this.#opts = opts;
+    this.leniency = opts.leniency ?? 100;
+    this.stopOnEmpty = opts.stopOnEmpty ?? true;
+    const issues =
+      this.leniency > 2_147_483_647
+        ? [
+            {
+              path: 'leniency',
+              code: 'invalid_interval',
+              message:
+                'Scheduling interval must not exceed 2147483647 milliseconds (the platform timer limit).',
+            },
+          ]
+        : validateDuration(this.leniency, 'leniency');
+    const result = issues.length
+      ? { ok: false as const, state: this.#state, issues, effects: [] as const }
+      : push(queue)(this.#state);
+    this.initializationResult = result;
+    if (result.ok) this.#state = result.state;
+    else this.#reportIssues(result.issues);
+    this.#state0 = this.#state;
+    this.#driver = createElapsedDriver({
+      now: opts.now,
+      schedule:
+        opts.schedule ??
+        ((callback) => {
+          const handle = setInterval(callback, this.leniency);
+          return () => clearInterval(handle);
+        }),
+      onElapsed: (elapsed) => {
+        const result = this.advance(elapsed);
+        if (result.ok && this.isEmpty() && this.stopOnEmpty) this.stop();
+      },
+      onIssue: (issue) => this.#reportIssues([issue]),
+    });
+    if (opts.onChange && result.ok) this.onChange(opts.onChange);
+  }
+
+  #reportIssues(issues: readonly ValidationIssue[]) {
+    this.#opts.onValidation?.(issues);
+    this.#validationListeners.forEach((listener) => listener(issues));
+  }
+  onValidation = (listener: (issues: readonly ValidationIssue[]) => void) => {
+    this.#validationListeners.add(listener);
     return () => {
-      this.#changeListeners.delete(listenerId);
+      this.#validationListeners.delete(listener);
     };
   };
-  readonly #reportQueueItem = (next: QueueItem<QueueItemType> | null) => {
-    // called before #state change; TODO don't depend on execution order as much
-    this.#changeListeners.forEach((f) => f(next));
+  onTransition = (listener: (effects: readonly QueueItem<Kind>[]) => void) => {
+    this.#transitionListeners.add(listener);
+    return () => {
+      this.#transitionListeners.delete(listener);
+    };
   };
-  readonly #tick = (step: number) => {
-    const [state1, queueItems] = tick(step)(this.#state);
-    this.#setState(state1);
-    return queueItems;
+  #notifying = false;
+  readonly #notificationBatches: {
+    next: QueueItem<Kind> | null;
+    changed: boolean;
+    effects: readonly QueueItem<Kind>[];
+  }[] = [];
+  #enqueueNotification(changed: boolean, effects: readonly QueueItem<Kind>[]) {
+    this.#notificationBatches.push({ next: this.current(), changed, effects });
+    if (this.#notifying) return;
+    this.#notifying = true;
+    try {
+      while (this.#notificationBatches.length) {
+        const batch = this.#notificationBatches.shift()!;
+        if (batch.changed)
+          this.#listeners.forEach((listener) => listener(batch.next));
+        if (batch.effects.length) {
+          this.#opts.onTransition?.(batch.effects);
+          this.#transitionListeners.forEach((listener) =>
+            listener(batch.effects)
+          );
+        }
+      }
+    } finally {
+      this.#notifying = false;
+    }
+  }
+  #notify = () => this.#enqueueNotification(true, []);
+  #commit(result: TransitionResult<State<Kind>, QueueItem<Kind>>) {
+    if (!result.ok) {
+      this.#reportIssues(result.issues);
+      return result;
+    }
+    const previous = this.#state;
+    this.#state = result.state;
+    // Capture the committed stage and serialize listener batches: a listener
+    // may commit another transition, whose effects must follow this batch.
+    if (previous !== result.state || result.effects.length)
+      this.#enqueueNotification(previous !== result.state, result.effects);
+    return result;
+  }
+  onChange = (
+    listener: (next: QueueItem<Kind> | null) => void,
+    opts = { withCurrent: true }
+  ) => {
+    if (opts.withCurrent) listener(this.current());
+    this.#listeners.add(listener);
+    return () => {
+      this.#listeners.delete(listener);
+    };
   };
-  push = (queueItems: Program<QueueItemType>) => {
-    this.#setState(push(queueItems)(this.#state));
-  };
+  advance = (elapsed: number) => this.#commit(tick(elapsed)(this.#state));
+  push = (queue: Program<Kind>) => this.#commit(push(queue)(this.#state));
+  #clockResult(
+    result: ElapsedDriverResult
+  ): TransitionResult<State<Kind>, QueueItem<Kind>> {
+    return result.ok
+      ? { ok: true, state: this.#state, effects: [] }
+      : { ok: false, state: this.#state, issues: result.issues, effects: [] };
+  }
   restart = () => {
-    this.#setState(restart(this.#state));
+    const boundary = this.#driver.restart();
+    if (!boundary.ok) return this.#clockResult(boundary);
+    return this.#commit({ ok: true, state: restart(this.#state), effects: [] });
   };
   reset = () => {
-    this.#setState(this.#state0);
+    if (this.isRunning()) {
+      const boundary = this.#driver.restart();
+      if (!boundary.ok) return this.#clockResult(boundary);
+    }
+    return this.#commit({ ok: true, state: this.#state0, effects: [] });
   };
   pause = () => {
-    if (!this.isRunning()) return;
-    clearInterval(assertExists(this.#intervalHandle));
-    this.#intervalHandle = null;
+    const running = this.isRunning();
+    const result = this.#driver.pause();
+    if (result.ok && running) this.#notify();
+    return this.#clockResult(result);
   };
   start = () => {
-    if (this.isRunning()) return;
-    let lastMs = Date.now();
-    this.#intervalHandle = setInterval(() => {
-      const now = Date.now();
-      const delta = now - lastMs;
-      lastMs = now;
-      this.#tick(delta);
-      if (this.isEmpty() && this.stopOnEmpty) {
-        this.stop();
-      }
-    }, this.leniency);
+    if (!this.initializationResult.ok) return this.initializationResult;
+    const running = this.isRunning();
+    const result = this.#driver.start();
+    if (result.ok && !running && this.isRunning()) this.#notify();
+    return this.#clockResult(result);
   };
   stop = () => {
-    this.pause();
-    this.reset();
+    const result = this.pause();
+    if (!result.ok) return result;
+    return this.reset();
   };
-  isEmpty = () => {
-    return isEmpty(this.#state);
+  suspend = () => this.#driver.suspend();
+  dispose = () => {
+    const running = this.isRunning();
+    this.#driver.dispose();
+    if (running) this.#notify();
   };
-  length = () => {
-    return this.#state.queue.length;
-  };
-  current = () => {
-    return current(this.#state);
-  };
+  isRunning = () => this.#driver.isRunning();
+  isEmpty = () => isEmpty(this.#state);
+  length = () => this.#state.queue.length;
+  current = () => current(this.#state);
 }

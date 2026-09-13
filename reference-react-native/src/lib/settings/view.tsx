@@ -25,8 +25,7 @@ const SimpleSettings: React.FC<Props> = ({settings, onAction, actions}) =>
       makeAction: ModeSelectorSettingViewModeActions<'simple'>[keyof ModeSelectorSettingViewModeActions<'simple'>]
     ) =>
       (n: number) => {
-        const v = BigInt(n);
-        onAction(makeAction(v));
+        onAction(makeAction(n));
       };
 
   return (
