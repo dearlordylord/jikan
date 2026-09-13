@@ -163,6 +163,7 @@ function ReactNativeTimer_() {
   const clock = useTimeGremlin({
     uiState,
     setUiState,
+    speed: BigInt(1000),
     dispatch: (action) => {
       const result = dispatch(action);
       if (result.ok && action._tag === 'TimePassed') onTick(result.state);
