@@ -6,7 +6,7 @@ const term = terminal.terminal;
 const renderStats = (v: ViewValue): string => {
   // TODO get duration from somewhere
   return `${v.running}: ${
-    v.running === 'running'
+    v.running === 'running' || v.running === 'paused'
       ? v.timerStats.round.kind +
         v.timerStats.round.current +
         '/' +
@@ -61,7 +61,9 @@ const renderMenu = () => {
           renderMenu();
           return setTimeout(() => prompt(), 1000);
         } else {
-          state = ui.reduce(action)(state);
+          const result = ui.reduce(action)(state);
+          state = result.state;
+          if (!result.ok) term.bold.red(result.issues.map((issue) => issue.message).join('; '));
           renderMenu();
           return prompt();
         }
@@ -86,7 +88,8 @@ const prompt = () => {
   term.bold.cyan(rendered);
   const STEP = 1000;
   timeoutHandle = setTimeout(() => {
-    const state1 = ui.reduce(ui.TimePassedEvent(BigInt(STEP)))(state);
+    const result = ui.reduce(ui.TimePassedEvent(BigInt(STEP)))(state);
+    const state1 = result.state;
     if (state1.running === 'running') term.bell(); // always ticks
     state = state1;
     prompt();

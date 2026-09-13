@@ -1,11 +1,13 @@
-# ui-react-utils
+# Workout action binding
 
-This library was generated with [Nx](https://nx.dev).
+`useOnAction({uiState, setUiState, onTransition?, onIssues?})` returns a stable
+synchronous dispatch. It applies consecutive actions against the latest committed
+consumer state, commits the returned state, then delivers ordered completed stages
+to `onTransition`. Rejected input preserves valid state, delivers issues, and emits
+no successful transition callback. Effects run outside rendering and React updater
+functions.
 
-## Building
-
-Run `nx build ui-react-utils` to build the library.
-
-## Running unit tests
-
-Run `nx test ui-react-utils` to execute the unit tests via [Jest](https://jestjs.io).
+When multiple integrations dispatch to the same workout, pass the same
+consumer-owned dispatch to each integration. With `useTimeGremlin`, also pass
+`getState: dispatch.getState` so control boundaries see consecutive actions before
+React renders.

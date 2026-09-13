@@ -17,8 +17,9 @@ export const isNonEmptyRA = <T>(a: readonly T[]): a is readonly [T, ...T[]] =>
   !isEmptyRA(a);
 
 export const last = <T>(a: readonly T[] | T[]): T | null =>
-  isRNEA(a) ? a[a.length - 1] : null;
-export const lastRNEA = <T>(a: ReadonlyNonEmptyArray<T>): T => a[a.length - 1];
+  isRNEA(a) ? lastRNEA(a) : null;
+export const lastRNEA = <T>(a: ReadonlyNonEmptyArray<T>): T =>
+  assertRNEA(a.slice(-1))[0];
 
 export function concatRNEA<B>(
   second: ReadonlyNonEmptyArray<B>

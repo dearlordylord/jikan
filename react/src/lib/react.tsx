@@ -1,56 +1,109 @@
-import { StatefulSimulation, StatefulSimulationOpts } from '@jikan0/adapters';
-import { Program, QueueItem } from '@jikan0/fsm';
-import { assertExists, stringHashCode } from '@jikan0/utils';
+import type { StatefulSimulationOpts } from '@jikan0/adapters';
+import { StatefulSimulation } from '@jikan0/adapters';
+import type { Program, QueueItem } from '@jikan0/fsm';
+import { push, empty, MAX_PROGRAM_STAGES } from '@jikan0/fsm';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-const hashProgram = (program: Program) => {
-  const allKinds = [...new Set(program.map(({ kind }) => kind))];
-  const kindsHash = stringHashCode(allKinds.join(':'));
-  const kindIndices = Object.fromEntries(
-    allKinds.map((kind, i) => [kind, i] as const)
+/** Compare ordered stage values directly: sums/hashes lose order and collide. */
+export const areProgramsEqual = (
+  a: readonly QueueItem[],
+  b: readonly QueueItem[]
+) =>
+  a.length === b.length &&
+  a.every(
+    (item, index) =>
+      b[index]?.kind === item.kind &&
+      Object.is(item.duration, b[index]?.duration)
   );
-  return program.reduce(
-    (acc, { duration, kind }) =>
-      acc +
-      /*not sure if "+" is good here, but probably good enough*/ (duration +
-        1) *
-        allKinds.length +
-      kindIndices[kind],
-    kindsHash
-  );
-};
 
 export const makeUseTimer =
   (opts?: StatefulSimulationOpts) =>
   <Kind extends string = string>(program: Program<Kind>) => {
-    const programHash = useMemo(
-      () => hashProgram(program),
-      [program /*assume they don't mutate*/]
-    );
     const ref = useRef<StatefulSimulation<Kind>>();
     if (!ref.current) {
-      ref.current = new StatefulSimulation([], opts);
+      const {
+        onChange: _change,
+        onTransition: _transition,
+        onValidation: _validation,
+        ...timingOptions
+      } = opts ?? {};
+      ref.current = new StatefulSimulation([], timingOptions);
     }
-    const sim = assertExists(ref.current);
-    // cleanup on unmount
-    useEffect(() => () => sim.stop(), [sim]);
-    const [queueItem, setQueueItem] = useState<QueueItem<Kind> | null>(null);
-    // watch until unmount
-    useEffect(() => sim.onChange(setQueueItem), []);
-    // stops on program change
+    const sim = ref.current;
+    const [snapshot, setSnapshot] = useState<{
+      current: QueueItem<Kind> | null;
+      running: boolean;
+    }>({
+      current: null,
+      running: false,
+    });
+    const committedProgram = useRef<readonly QueueItem<Kind>[]>();
+    const rejectedProgram = useRef<readonly QueueItem<Kind>[]>();
+    const rejectedOversizedLength = useRef<number>();
     useEffect(() => {
-      const sim = assertExists(ref.current);
-      sim.stop();
+      const unsubscribe = sim.onChange((current) => {
+        setSnapshot({ current, running: sim.isRunning() });
+        opts?.onChange?.(current);
+      });
+      const unsubscribeTransitions = sim.onTransition((effects) =>
+        opts?.onTransition?.(effects)
+      );
+      const unsubscribeValidation = sim.onValidation((issues) =>
+        opts?.onValidation?.(issues)
+      );
+      return () => {
+        unsubscribe();
+        unsubscribeTransitions();
+        unsubscribeValidation();
+        // Cancel without charging elapsed time; retain the instance for StrictMode replay.
+        sim.suspend();
+      };
+    }, [sim]);
+    useEffect(() => {
+      if (program.length > MAX_PROGRAM_STAGES) {
+        rejectedProgram.current = undefined;
+        if (rejectedOversizedLength.current !== program.length) {
+          const checked = push(program)(empty);
+          if (!checked.ok) opts?.onValidation?.(checked.issues);
+          rejectedOversizedLength.current = program.length;
+        }
+        return;
+      }
+      rejectedOversizedLength.current = undefined;
+      if (
+        committedProgram.current &&
+        areProgramsEqual(committedProgram.current, program)
+      ) {
+        rejectedProgram.current = undefined;
+        return;
+      }
+      if (
+        rejectedProgram.current &&
+        areProgramsEqual(rejectedProgram.current, program)
+      )
+        return;
+      const checked = push(program)(empty);
+      if (!checked.ok) {
+        rejectedProgram.current = program.map((item) => ({ ...item }));
+        opts?.onValidation?.(checked.issues);
+        return;
+      }
+      const stopped = sim.stop();
+      if (!stopped.ok) return;
       sim.push(program);
-    }, [programHash]);
-    const start = useMemo(() => sim.start /*to keep it bound*/, []);
-    return {
-      current: queueItem,
-      running: sim.isRunning(),
-      start,
-    };
+      rejectedProgram.current = undefined;
+      committedProgram.current = program.map((item) => ({ ...item }));
+    }, [program, sim]);
+    const controls = useMemo(
+      () => ({
+        start: sim.start,
+        pause: sim.pause,
+        stop: sim.stop,
+        restart: sim.restart,
+      }),
+      [sim]
+    );
+    return { ...snapshot, ...controls };
   };
 
-const useTimerDefault = makeUseTimer();
-
-export const useTimer = useTimerDefault;
+export const useTimer = makeUseTimer();

@@ -1,0 +1,26 @@
+{
+  "extends": "./tsconfig.maintained.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "outDir": "./dist/maintained",
+    "rootDir": ".",
+    "module": "commonjs"
+  },
+  "exclude": [
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/test-setup.ts",
+    "**/test-setup.tsx",
+    "**/*.typecheck.ts"
+  ],
+  "tsc-alias": {
+    "replacers": {
+      "base-url": {
+        "enabled": false
+      }
+    }
+  }
+}

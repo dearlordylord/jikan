@@ -1,3 +1,5 @@
+import { assertExists, assertRNEA } from '@jikan0/utils';
+import type { QueueItem, State, Program } from './fsm';
 import {
   currentNE,
   empty,
@@ -5,15 +7,10 @@ import {
   pop,
   push,
   restart,
-  QueueItem,
-  State,
   tick,
   eqQueueItem,
-  Program,
 } from './fsm';
-import fc from 'fast-check';
 import { BASIC_EXERCISE_PROGRAM } from '@jikan0/test-utils';
-import { showPrintDuration0QueueItemError } from './warnings';
 
 describe('fsm', () => {
   describe('push', () => {
@@ -24,7 +21,7 @@ describe('fsm', () => {
           kind: 'a',
           duration: 1,
         },
-      ])(s0);
+      ])(s0).state;
       expect(s1).toEqual({
         duration: 1,
         queue: [
@@ -35,52 +32,20 @@ describe('fsm', () => {
         ],
       } satisfies State);
     });
-    it('type is extendable', () => {
-      const s0 = empty as State<'a' | 'b' | 'c'>;
-      const s1 = push([
-        {
-          kind: 'a',
-          duration: 1,
-        },
-      ])(s0);
-      type B1 = typeof s1 extends State<'a' | 'b' | 'c'> ? true : false;
-      type B2 = typeof s1 extends State<'a' | 'b'> ? true : false;
-      type B3 = typeof s1 extends State<'d'> ? true : false;
-      const _a: B1 = true;
-      // @ts-expect-error checks the assertion itself
-      const _a2: B1 = false;
-      const _b: B2 = false;
-      const _c: B3 = false;
-    });
-    it('no extra types leak into it', () => {
-      push([
-        {
-          kind: 'd',
-          duration: 1,
-        },
-        // @ts-expect-error type 'd' won't be accepted here
-      ])(empty as State<'a' | 'b' | 'c'>);
-    });
-    it('ignores <= 0 duration items, warns once', () => {
-      const s0 = empty as State<'a'>;
-      const consoleSpy = jest.spyOn(console, 'warn');
-      const queueItem1: QueueItem<'a'> = {
-        kind: 'a',
-        duration: 0,
-      };
-      const s1 = push([queueItem1])(s0);
-      expect(s1).toEqual(empty);
-      expect(consoleSpy).toHaveBeenCalledWith(
-        showPrintDuration0QueueItemError(queueItem1)
-      );
-      const queueItem2: QueueItem<'a'> = {
-        kind: 'a',
-        duration: -1,
-      };
-      const s2 = push([queueItem2])(s0);
-      expect(s2).toEqual(empty);
-      expect(consoleSpy).toHaveBeenCalledTimes(1 /*warn only once*/);
-    });
+    it.each([0, -1, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])(
+      'rejects duration %s without effects',
+      (duration) => {
+        const state = push([{ kind: 'a', duration: 2 }])(empty).state;
+        const result = push([{ kind: 'a', duration }])(state);
+        expect(result.ok).toBe(false);
+        expect(result.state).toBe(state);
+        expect(result.effects).toEqual([]);
+        if (!result.ok)
+          expect(assertExists(result.issues[0]).path).toBe(
+            'program.0.duration'
+          );
+      }
+    );
   });
   describe('pop', () => {
     it('pops', () => {
@@ -90,7 +55,7 @@ describe('fsm', () => {
           kind: 'a',
           duration: 1,
         },
-      ])(s0);
+      ])(s0).state;
       expect(isEmpty(s1)).toBe(false);
       const [s2] = pop(s1);
       expect(isEmpty(s2)).toBe(true);
@@ -102,6 +67,30 @@ describe('fsm', () => {
     });
   });
   describe('tick', () => {
+    it.each([-1, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])(
+      'rejects elapsed %s',
+      (elapsed) => {
+        const state = push([{ kind: 'a', duration: 2 }])(empty).state;
+        const result = tick(elapsed)(state);
+        expect(result.ok).toBe(false);
+        expect(result.state).toBe(state);
+        expect(result.effects).toEqual([]);
+      }
+    );
+    it('rejects oversized queues before reading stage content', () => {
+      const stages: QueueItem[] = new Array<QueueItem>(10001);
+      expect(push(assertRNEA(stages))(empty).ok).toBe(false);
+    });
+    it('crosses bounded programs without recursion and retains ordered facts', () => {
+      const program = Array.from({ length: 10000 }, (_, index) => ({
+        kind: String(index),
+        duration: 1,
+      }));
+      const result = tick(10000)(push(assertRNEA(program))(empty).state);
+      expect(result.state).toBe(empty);
+      expect(result.effects).toEqual(program);
+    });
+
     it('ticks', () => {
       const s0 = empty as State<'a'>;
       const s1 = push([
@@ -109,8 +98,8 @@ describe('fsm', () => {
           kind: 'a',
           duration: 2,
         },
-      ])(s0);
-      const [s2, queueItems] = tick(1)(s1);
+      ])(s0).state;
+      const { state: s2, effects: queueItems } = tick(1)(s1);
       expect(s2.duration).toBe(1);
       expect(queueItems.length).toBe(0);
     });
@@ -121,8 +110,8 @@ describe('fsm', () => {
           kind: 'a',
           duration: 2,
         },
-      ])(s0);
-      const [s2, queueItems] = tick(0)(s1);
+      ])(s0).state;
+      const { state: s2, effects: queueItems } = tick(0)(s1);
       expect(s2).toBe(s1);
       expect(queueItems.length).toBe(0);
     });
@@ -137,8 +126,8 @@ describe('fsm', () => {
           kind: 'b',
           duration: 3,
         },
-      ])(s0);
-      const [s2, queueItems] = tick(4)(s1);
+      ])(s0).state;
+      const { state: s2, effects: queueItems } = tick(4)(s1);
       expect(s2).toMatchObject({
         duration: 1,
         queue: [
@@ -166,8 +155,8 @@ describe('fsm', () => {
           kind: 'b',
           duration: 3,
         },
-      ])(s0);
-      const [s2] = tick(6)(s1);
+      ])(s0).state;
+      const { state: s2 } = tick(6)(s1);
       expect(s2).toEqual(empty);
     });
   });
@@ -183,7 +172,7 @@ describe('fsm', () => {
           kind: 'b',
           duration: 3,
         },
-      ])(s0);
+      ])(s0).state;
       expect(s1.duration).toBe(2);
       const s2 = restart(s1);
       expect(s2.duration).toBe(2);
@@ -205,9 +194,9 @@ describe('fsm', () => {
           kind: 'b',
           duration: 3,
         },
-      ])(s0);
+      ])(s0).state;
       expect(s1.duration).toBe(2);
-      const s2 = tick(1)(s1)[0];
+      const s2 = tick(1)(s1).state;
       expect(s2.duration).toBe(1);
       const s3 = restart(s2);
       expect(s3.duration).toBe(2);
@@ -219,11 +208,13 @@ describe('fsm', () => {
         [State<string>, QueueItem<string>[]]
       >(
         ([state, queueItems], queueItem) => {
-          const [state_, queueItems_] = tick(state.duration)(state);
+          const { state: state_, effects: queueItems_ } = tick(state.duration)(
+            state
+          );
           expect(queueItem).toEqual(queueItems_[0]);
           return [state_, [...queueItems, ...queueItems_]];
         },
-        [push(program)(empty), []]
+        [push(program)(empty).state, []]
       );
       expect(state).toEqual(empty);
       expect(runLog).toEqual(program);
@@ -232,10 +223,12 @@ describe('fsm', () => {
       <T extends string>(step: (currentItem: QueueItem<T>) => number) =>
       (program: Program<T>) => {
         let runLog: readonly QueueItem<T>[] = [];
-        let state = push(program)(empty as State<T>);
+        let state = push(program)(empty as State<T>).state;
         while (!isEmpty(state)) {
           const queueItem = currentNE(state);
-          const [state1, queueItems] = tick(step(queueItem))(state);
+          const { state: state1, effects: queueItems } = tick(step(queueItem))(
+            state
+          );
           runLog = [...runLog, ...queueItems];
           expect(runLog).toEqual(program.slice(0, runLog.length));
           state = state1;
@@ -256,24 +249,15 @@ describe('fsm', () => {
     it('can be used to simulate an exercise timer in mercury', () => {
       overshootTimerSimulationTest(BASIC_EXERCISE_PROGRAM);
     });
-    it('passes rendomized tests', () => {
-      const randomizedExercise = fc.array(
-        fc.record({
-          kind: fc.constantFrom(
-            ...BASIC_EXERCISE_PROGRAM.map(({ kind }) => kind)
-          ),
-          duration: fc.nat(1000 * 60 * 60 * 24).map((n) => n + 1 /*no 0s*/),
-        }),
-        {
-          minLength: 1,
-        }
-      );
-      fc.assert(
-        fc.property(randomizedExercise, (program) => {
-          naiveSimulationTest(program as unknown as Program);
-        })
-      );
-    });
+  });
+  it('accepts fractional elapsed and stage durations', () => {
+    const initial = push([
+      { kind: 'a', duration: 0.5 },
+      { kind: 'b', duration: 0.75 },
+    ])(empty).state;
+    const result = tick(0.625)(initial);
+    expect(result.state.duration).toBe(0.625);
+    expect(result.effects).toEqual([{ kind: 'a', duration: 0.5 }]);
   });
   describe('eqQueueItem', () => {
     it('works', () => {

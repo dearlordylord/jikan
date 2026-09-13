@@ -2,7 +2,18 @@
   "name": "@jikan0/source",
   "version": "1.2.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.maintained.json",
+    "lint": "eslint --no-eslintrc --config .eslintrc.maintained.cjs --no-ignore --max-warnings=0 \"{utils,fsm,adapters,facade,test-utils,ui,react,react-time-gremlin,ui-react-utils,reference-react,reference-react-app}/src/**/*.{ts,tsx}\"",
+    "test": "jest --config jest.maintained.config.cjs --runInBand",
+    "build": "tsc -p tsconfig.maintained-build.json && tsc-alias -p tsconfig.maintained-build.json && node tools/check-built.cjs && vite build --config vite.maintained.config.ts",
+    "dev": "vite --config vite.maintained.config.ts",
+    "preview": "vite preview --config vite.maintained.config.ts",
+    "check": "npm run typecheck && npm run lint && npm run check:format && npm test && npm run build",
+    "prebuild": "node -e \"require('node:fs').rmSync('dist/maintained', { recursive: true, force: true })\"",
+    "format": "prettier --write \"{utils,fsm,adapters,facade,test-utils,ui,react,react-time-gremlin,ui-react-utils,reference-react,reference-react-app}/src/**/*.{ts,tsx}\" package.json tsconfig.maintained*.json .eslintrc.maintained.cjs jest.maintained.config.cjs vite.maintained.config.ts .github/workflows/ci.yml \"tools/*.cjs\"",
+    "check:format": "prettier --check \"{utils,fsm,adapters,facade,test-utils,ui,react,react-time-gremlin,ui-react-utils,reference-react,reference-react-app}/src/**/*.{ts,tsx}\" package.json tsconfig.maintained*.json .eslintrc.maintained.cjs jest.maintained.config.cjs vite.maintained.config.ts .github/workflows/ci.yml \"tools/*.cjs\""
+  },
   "private": true,
   "dependencies": {
     "@effect/schema": "^0.63.2",

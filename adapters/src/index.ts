@@ -1,4 +1,3 @@
-export {
-  StatefulSimulation,
-  StatefulSimulationOpts,
-} from './lib/statefulSimulation';
+export { StatefulSimulation } from './lib/statefulSimulation';
+export type { StatefulSimulationOpts } from './lib/statefulSimulation';
+export * from './lib/elapsedDriver';
