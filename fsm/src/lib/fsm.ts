@@ -1,10 +1,12 @@
+import type { ReadonlyNonEmptyArray } from '@jikan0/utils';
 import {
   assertTrue,
+  assertExists,
+  assertRNEA,
   concatRNEA,
   isRNEA,
   last,
   lastRNEA,
-  ReadonlyNonEmptyArray,
 } from '@jikan0/utils';
 /** IEEE-754 exact integer ceiling; fractions remain supported by the general engine. */
 export const MAX_DURATION = Number.MAX_SAFE_INTEGER;
@@ -130,7 +132,7 @@ export const push =
     );
     if (issues.length) return rejected(state, issues);
     if (!qx_.length) return accepted(state);
-    const qx = Object.freeze([...qx_].reverse()) as NonEmptyQueue<Kind_>;
+    const qx = Object.freeze(assertRNEA([...qx_].reverse()));
     return accepted(
       isEmpty(state)
         ? { duration: lastRNEA(qx).duration, queue: qx }
@@ -197,15 +199,15 @@ export const tick =
     const effects: QueueItem<Kind>[] = [];
     while (length > 0 && remaining >= duration) {
       remaining -= duration;
-      effects.push(state.queue[length - 1]);
+      effects.push(assertExists(state.queue[length - 1]));
       length -= 1;
-      if (length > 0) duration = state.queue[length - 1].duration;
+      if (length > 0) duration = assertExists(state.queue[length - 1]).duration;
     }
     if (length === 0) return accepted(empty, Object.freeze(effects));
     const queue =
       length === state.queue.length
         ? state.queue
-        : (Object.freeze(state.queue.slice(0, length)) as NonEmptyQueue<Kind>);
+        : Object.freeze(assertRNEA(state.queue.slice(0, length)));
     return accepted(
       Object.freeze({ queue, duration: duration - remaining }),
       Object.freeze(effects)

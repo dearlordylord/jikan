@@ -1,4 +1,5 @@
-import { MAX_DURATION, ValidationIssue } from '@jikan0/fsm';
+import type { ValidationIssue } from '@jikan0/fsm';
+import { MAX_DURATION } from '@jikan0/fsm';
 
 /** Schedule wake-ups independently of the measurement clock. Return cleanup. */
 export type ElapsedScheduler = (wake: () => void) => () => void;

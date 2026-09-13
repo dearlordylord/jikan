@@ -1,8 +1,10 @@
+import { assertExists } from '@jikan0/utils';
+import type { QueueItem } from '@jikan0/fsm';
 import { act, renderHook } from '@testing-library/react';
 
 import { useTimer, makeUseTimer } from './react';
 
-import { Program } from '@jikan0/fsm';
+import type { Program } from '@jikan0/fsm';
 
 jest.useFakeTimers();
 
@@ -19,7 +21,9 @@ describe('useTimer', () => {
     const step1 = { kind: 'a', duration: 1 };
     const program: Program = [step1];
     const { result } = renderHook(() => useTimer(program));
-    act(() => { result.current.start(); });
+    act(() => {
+      result.current.start();
+    });
     act(() => jest.runOnlyPendingTimers());
     expect(result.current.current).toBeNull();
     expect(result.current.running).toBe(false);
@@ -29,7 +33,9 @@ describe('useTimer', () => {
     const step2 = { kind: 'b', duration: 1000 };
     const program: Program = [step1, step2];
     const { result } = renderHook(() => useTimer(program));
-    act(() => { result.current.start(); });
+    act(() => {
+      result.current.start();
+    });
     act(() => jest.advanceTimersByTime(1000) /*runs step1*/);
     expect(result.current.current).toMatchObject(step2);
     expect(result.current.running).toBe(true);
@@ -44,7 +50,9 @@ describe('useTimer', () => {
     const { result, rerender } = renderHook(useTimer, {
       initialProps: program1,
     });
-    act(() => { result.current.start(); });
+    act(() => {
+      result.current.start();
+    });
     act(() => jest.advanceTimersByTime(1000) /*runs step1*/);
     expect(result.current.running).toBe(true);
     rerender(program2);
@@ -57,7 +65,9 @@ describe('useTimer', () => {
     const { result, rerender } = renderHook(useTimer, {
       initialProps: [step1, step2] as Program,
     });
-    act(() => { result.current.start(); });
+    act(() => {
+      result.current.start();
+    });
     act(() => jest.advanceTimersByTime(1000) /*runs step1*/);
     expect(result.current.running).toBe(true);
     rerender([step1, step2]);
@@ -67,14 +77,25 @@ describe('useTimer', () => {
 
 it('replaces programs whose old hashes collide, while preserving equivalent progress', () => {
   const { result, rerender } = renderHook(useTimer, {
-    initialProps: [{ kind: 'a', duration: 1000 }, { kind: 'a', duration: 2000 }] as Program,
+    initialProps: [
+      { kind: 'a', duration: 1000 },
+      { kind: 'a', duration: 2000 },
+    ] as Program,
   });
-  act(() => { result.current.start(); });
+  act(() => {
+    result.current.start();
+  });
   act(() => jest.advanceTimersByTime(400));
-  rerender([{ kind: 'a', duration: 1000 }, { kind: 'a', duration: 2000 }]);
+  rerender([
+    { kind: 'a', duration: 1000 },
+    { kind: 'a', duration: 2000 },
+  ]);
   expect(result.current.running).toBe(true);
   // The old sum-based hash ignores stage order.
-  rerender([{ kind: 'a', duration: 2000 }, { kind: 'a', duration: 1000 }]);
+  rerender([
+    { kind: 'a', duration: 2000 },
+    { kind: 'a', duration: 1000 },
+  ]);
   expect(result.current.current?.duration).toBe(2000);
   expect(result.current.running).toBe(false);
 });
@@ -85,15 +106,27 @@ it('updates running immediately and disposes the live schedule on unmount', () =
   const cleanup = jest.fn();
   const timer = makeUseTimer({
     now: () => sample,
-    schedule: (callback: () => void) => { wake = callback; return cleanup; },
+    schedule: (callback: () => void) => {
+      wake = callback;
+      return cleanup;
+    },
   });
-  const { result, unmount } = renderHook(() => timer([{ kind: 'a', duration: 1000 }]));
-  act(() => { result.current.start(); });
+  const { result, unmount } = renderHook(() =>
+    timer([{ kind: 'a', duration: 1000 }])
+  );
+  act(() => {
+    result.current.start();
+  });
   expect(result.current.running).toBe(true);
-  act(() => { sample = 200; result.current.pause(); });
+  act(() => {
+    sample = 200;
+    result.current.pause();
+  });
   expect(result.current.running).toBe(false);
   expect(cleanup).toHaveBeenCalledTimes(1);
-  act(() => { result.current.start(); });
+  act(() => {
+    result.current.start();
+  });
   unmount();
   expect(cleanup).toHaveBeenCalledTimes(2);
   sample = 900;
@@ -104,18 +137,33 @@ it('updates running immediately and disposes the live schedule on unmount', () =
 it('emits ordered identical-stage transitions once and does not flush transitions on unmount', () => {
   let sample = 0;
   let wake: () => void = () => undefined;
-  const onTransition = jest.fn();
+  const onTransition = jest.fn<void, [readonly QueueItem[]]>();
   const timer = makeUseTimer({
     now: () => sample,
-    schedule: callback => { wake = callback; return () => undefined; },
+    schedule: (callback) => {
+      wake = callback;
+      return () => undefined;
+    },
     onTransition,
   });
-  const program: Program = [{ kind: 'a', duration: 100 }, { kind: 'a', duration: 100 }, { kind: 'a', duration: 100 }];
+  const program: Program = [
+    { kind: 'a', duration: 100 },
+    { kind: 'a', duration: 100 },
+    { kind: 'a', duration: 100 },
+  ];
   const { result, rerender, unmount } = renderHook(() => timer(program));
-  act(() => { result.current.start(); });
-  act(() => { sample = 200; wake(); });
+  act(() => {
+    result.current.start();
+  });
+  act(() => {
+    sample = 200;
+    wake();
+  });
   expect(onTransition).toHaveBeenCalledTimes(1);
-  expect(onTransition.mock.calls[0][0]).toEqual([program[0], program[1]]);
+  expect(assertExists(onTransition.mock.calls[0])[0]).toEqual([
+    program[0],
+    program[1],
+  ]);
   rerender();
   expect(onTransition).toHaveBeenCalledTimes(1);
   sample = 300;
@@ -129,7 +177,9 @@ it('preserves accepted progress when rejected replacement is followed by an equi
   const { result, rerender } = renderHook(timer, {
     initialProps: [{ kind: 'a', duration: 1000 }] as Program,
   });
-  act(() => { result.current.start(); });
+  act(() => {
+    result.current.start();
+  });
   act(() => jest.advanceTimersByTime(400));
   expect(result.current.current?.duration).toBe(600);
   rerender([{ kind: 'b', duration: -1 }]);

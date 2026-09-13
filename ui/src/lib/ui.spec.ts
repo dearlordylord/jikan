@@ -1,3 +1,4 @@
+import { assertExists } from '@jikan0/utils';
 import {
   ContinueClickedEvent,
   PauseClickedEvent,
@@ -164,7 +165,7 @@ describe('validation and lifecycle', () => {
     expect(result.ok).toBe(false);
     expect(result.state).toBe(state0);
     expect(result.effects).toEqual([]);
-    if (!result.ok) expect(result.issues[0].path).toBe('rounds');
+    if (!result.ok) expect(assertExists(result.issues[0]).path).toBe('rounds');
   });
   it.each([BigInt(0), -BigInt(1), BigInt(9007199254740992), NaN, Infinity, ''])(
     'rejects invalid exercise duration %s',

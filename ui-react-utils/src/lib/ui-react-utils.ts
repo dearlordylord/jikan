@@ -1,5 +1,5 @@
 import * as ui from '@jikan0/ui';
-import { QueueItem, ValidationIssue } from '@jikan0/fsm';
+import type { QueueItem, ValidationIssue } from '@jikan0/fsm';
 import { useCallback, useLayoutEffect, useRef } from 'react';
 
 /** Dispatch against the latest committed state; interpret effects after committing. */
@@ -20,7 +20,8 @@ export const useOnAction = (options: {
     state.current = result.state;
     latest.current.setUiState(result.state);
     if (!result.ok) latest.current.onIssues?.(result.issues);
-    else if (result.effects.length) latest.current.onTransition?.(result.effects);
+    else if (result.effects.length)
+      latest.current.onTransition?.(result.effects);
     return result;
   }, []);
 };

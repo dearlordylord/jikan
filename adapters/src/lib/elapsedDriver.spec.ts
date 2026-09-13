@@ -1,4 +1,6 @@
-import { empty, push, State, tick } from '@jikan0/fsm';
+import { assertExists } from '@jikan0/utils';
+import type { State } from '@jikan0/fsm';
+import { empty, push, tick } from '@jikan0/fsm';
 import { createElapsedDriver } from './elapsedDriver';
 
 const harness = (integralMilliseconds = false) => {
@@ -36,9 +38,9 @@ describe('elapsed driver', () => {
     const h = harness();
     h.driver.start();
     h.at(12.25);
-    h.wakes[0]();
+    assertExists(h.wakes[0])();
     h.at(3012.75);
-    h.wakes[0]();
+    assertExists(h.wakes[0])();
     expect(h.elapsed).toEqual([12.25, 3000.5]);
   });
   it('retains fractional carry across repeated wakeups and pause/resume', () => {
@@ -46,14 +48,14 @@ describe('elapsed driver', () => {
     h.driver.start();
     for (let i = 1; i <= 9; i++) {
       h.at(i / 4);
-      h.wakes[0]();
+      assertExists(h.wakes[0])();
     }
     h.at(2.75);
     h.driver.pause();
     h.at(100);
     h.driver.start();
     h.at(100.25);
-    h.wakes[1]();
+    assertExists(h.wakes[1])();
     expect(h.elapsed).toEqual([1, 1, 1]);
   });
   it('flushes a pause before the first wake and excludes paused time', () => {
@@ -62,11 +64,11 @@ describe('elapsed driver', () => {
     h.at(400);
     h.driver.pause();
     h.at(1000);
-    h.wakes[0]();
+    assertExists(h.wakes[0])();
     expect(h.elapsed).toEqual([400]);
     h.driver.start();
     h.at(1100);
-    h.wakes[1]();
+    assertExists(h.wakes[1])();
     expect(h.elapsed).toEqual([400, 100]);
     expect(h.cleanups[0]).toHaveBeenCalledTimes(1);
   });
@@ -74,15 +76,15 @@ describe('elapsed driver', () => {
     const h = harness(true);
     h.driver.start();
     h.at(0.75);
-    h.wakes[0]();
+    assertExists(h.wakes[0])();
     h.at(100);
     h.driver.restart();
     h.at(100.5);
-    h.wakes[0]();
-    h.wakes[1]();
+    assertExists(h.wakes[0])();
+    assertExists(h.wakes[1])();
     expect(h.elapsed).toEqual([]);
     h.at(101);
-    h.wakes[1]();
+    assertExists(h.wakes[1])();
     expect(h.elapsed).toEqual([1]);
   });
   it('start and cleanup are idempotent and disposal invalidates all callbacks', () => {
@@ -94,7 +96,7 @@ describe('elapsed driver', () => {
     h.driver.dispose();
     h.driver.start();
     h.at(100);
-    h.wakes[0]();
+    assertExists(h.wakes[0])();
     expect(h.elapsed).toEqual([]);
     expect(h.cleanups[0]).toHaveBeenCalledTimes(1);
     expect(h.driver.isRunning()).toBe(false);
@@ -111,7 +113,7 @@ describe('elapsed driver', () => {
       expect(h.driver.isRunning()).toBe(true);
       expect(h.driver.restart().ok).toBe(false);
       h.at(20);
-      h.wakes[0]();
+      assertExists(h.wakes[0])();
       expect(h.elapsed).toEqual([10, 10]);
       expect(h.issues).toHaveBeenCalledTimes(2);
     }
@@ -222,8 +224,8 @@ describe('elapsed driver', () => {
     h.at(100);
     h.driver.start();
     h.at(100.25);
-    h.wakes[0]();
-    h.wakes[1]();
+    assertExists(h.wakes[0])();
+    assertExists(h.wakes[1])();
     expect(h.elapsed).toEqual([1]);
   });
 });

@@ -5,6 +5,8 @@ module.exports = {
     ecmaVersion: 2020,
     sourceType: 'module',
     ecmaFeatures: { jsx: true },
+    project: './tsconfig.maintained.json',
+    tsconfigRootDir: __dirname,
   },
   plugins: ['@typescript-eslint', 'react-hooks'],
   extends: [
@@ -14,6 +16,19 @@ module.exports = {
   ],
   env: { browser: true, node: true, es2020: true, jest: true },
   rules: {
+    '@typescript-eslint/consistent-type-imports': 'error',
+    '@typescript-eslint/no-floating-promises': 'error',
+    '@typescript-eslint/no-misused-promises': 'error',
+    '@typescript-eslint/await-thenable': 'error',
+    '@typescript-eslint/no-non-null-assertion': 'error',
+    '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+    '@typescript-eslint/no-unsafe-assignment': 'error',
+    '@typescript-eslint/no-unsafe-argument': 'error',
+    '@typescript-eslint/no-unsafe-call': 'error',
+    '@typescript-eslint/no-unsafe-member-access': 'error',
+    '@typescript-eslint/no-unsafe-return': 'error',
+    'no-var': 'error',
+    'prefer-const': 'error',
     '@typescript-eslint/no-unused-vars': [
       'error',
       { varsIgnorePattern: '^_', argsIgnorePattern: '^_' },

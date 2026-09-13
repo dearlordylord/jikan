@@ -1,15 +1,21 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import * as ui from '@jikan0/ui';
-import { TimeGremlinOptions, useTimeGremlin } from '@jikan0/react-time-gremlin';
+import type { TimeGremlinOptions } from '@jikan0/react-time-gremlin';
+import { useTimeGremlin } from '@jikan0/react-time-gremlin';
 
 export type ReferenceReactProps = {
   timing?: Pick<TimeGremlinOptions, 'now' | 'schedule' | 'speed' | 'appetite'>;
   onTransition?: TimeGremlinOptions['onTransition'];
 };
 
-export function ReferenceReact({ timing, onTransition }: ReferenceReactProps = {}) {
+export function ReferenceReact({
+  timing,
+  onTransition,
+}: ReferenceReactProps = {}) {
   const transitionSink = useRef(onTransition);
-  useLayoutEffect(() => { transitionSink.current = onTransition; }, [onTransition]);
+  useLayoutEffect(() => {
+    transitionSink.current = onTransition;
+  }, [onTransition]);
   const [uiState, setUiState] = useState<ui.State>(ui.state0);
   const committed = useRef(uiState);
   const [issues, setIssues] = useState<
@@ -21,7 +27,8 @@ export function ReferenceReact({ timing, onTransition }: ReferenceReactProps = {
     committed.current = result.state;
     setUiState(result.state);
     setIssues(result.ok ? [] : result.issues);
-    if (result.ok && result.effects.length) transitionSink.current?.(result.effects);
+    if (result.ok && result.effects.length)
+      transitionSink.current?.(result.effects);
   }, []);
   const clock = useTimeGremlin({
     ...timing,

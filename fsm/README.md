@@ -1,4 +1,7 @@
-Pure general timer engine. Consumers own current state and provide elapsed time.
+# Core timer
+
+Pure general timer engine. Consumers own state and supply elapsed time; the core
+does no scheduling or side effects.
 
 ```ts
 let state: State<'exercise'> = empty;
@@ -12,23 +15,20 @@ if (result.ok) {
   // Ordered stages consumed during this committed transition.
   playTransitionEffects(result.effects);
 } else {
-  showIssues(result.issues); // result.state is the original state; effects is empty
+  showIssues(result.issues); // state is unchanged; effects is empty
 }
 ```
 
-Stage durations must be positive finite numbers no greater than
-`MAX_DURATION = Number.MAX_SAFE_INTEGER`. Elapsed input may be zero, and must be
-finite, nonnegative and within the same bound. The general engine supports
-fractional numbers; arithmetic has ordinary IEEE-754 rounding limitations.
-Exact elapsed-partition equality is verified for bounded integers and binary
-fractions, and is not a claim of exact decimal floating-point arithmetic.
-Workout durations separately use integral milliseconds and validate conversion.
+Stage durations are positive finite numbers no greater than
+`MAX_DURATION = Number.MAX_SAFE_INTEGER`. Elapsed input may be zero, but must be
+finite, nonnegative, and within the same bound. Fractions are supported with
+ordinary IEEE-754 rounding; exact decimal arithmetic is not promised.
 
-`MAX_PROGRAM_STAGES = 10000` limits the eager queue's reference storage and copy
-work before input is traversed or copied. This is a supported construction limit,
-not a workout rule. Catch-up traverses crossed stages iteratively and copies the
-remaining queue once, avoiding recursive stack exhaustion and repeated copies.
-An invalid stage rejects the whole push; nothing is silently dropped.
+`MAX_PROGRAM_STAGES = 10000` bounds eager queue construction. An invalid stage or
+oversized program rejects the whole operation with `issues`; the original state
+is returned and `effects` is empty.
 
-`pop` skips the current stage and restores the next stage's full duration;
-`restart` restores the current stage only. `reset` empties the core queue.
+`tick` reports every consumed stage in order. `pop` skips the current stage and
+restores the next stage; `restart` restores the current stage; `reset` empties
+the queue. Workout durations use integral milliseconds and validate conversion
+separately in [`@jikan0/ui`](../ui/README.md).

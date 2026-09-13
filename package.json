@@ -9,8 +9,10 @@
     "build": "tsc -p tsconfig.maintained-build.json && tsc-alias -p tsconfig.maintained-build.json && vite build --config vite.maintained.config.ts",
     "dev": "vite --config vite.maintained.config.ts",
     "preview": "vite preview --config vite.maintained.config.ts",
-    "check": "npm run typecheck && npm run lint && npm test && npm run build",
-    "prebuild": "node -e \"require('node:fs').rmSync('dist/maintained', { recursive: true, force: true })\""
+    "check": "npm run typecheck && npm run lint && npm run check:format && npm test && npm run build",
+    "prebuild": "node -e \"require('node:fs').rmSync('dist/maintained', { recursive: true, force: true })\"",
+    "format": "prettier --write \"{utils,fsm,adapters,facade,test-utils,ui,react,react-time-gremlin,ui-react-utils,reference-react,reference-react-app}/src/**/*.{ts,tsx}\" package.json tsconfig.maintained*.json .eslintrc.maintained.cjs jest.maintained.config.cjs vite.maintained.config.ts .github/workflows/ci.yml",
+    "check:format": "prettier --check \"{utils,fsm,adapters,facade,test-utils,ui,react,react-time-gremlin,ui-react-utils,reference-react,reference-react-app}/src/**/*.{ts,tsx}\" package.json tsconfig.maintained*.json .eslintrc.maintained.cjs jest.maintained.config.cjs vite.maintained.config.ts .github/workflows/ci.yml"
   },
   "private": true,
   "dependencies": {

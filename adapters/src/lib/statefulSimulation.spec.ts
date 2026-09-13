@@ -1,3 +1,5 @@
+import type { QueueItem } from '@jikan0/fsm';
+import { assertExists } from '@jikan0/utils';
 jest.useFakeTimers();
 
 import { StatefulSimulation } from './statefulSimulation';
@@ -62,7 +64,7 @@ describe('validation and elapsed boundaries', () => {
   it('preserves valid state and emits no success effects on rejection', () => {
     const sim = new StatefulSimulation([{ kind: 'a', duration: 2 }]);
     const change = jest.fn();
-    const effects = jest.fn();
+    const effects = jest.fn<void, [readonly QueueItem[]]>();
     const issues = jest.fn();
     sim.onChange(change, { withCurrent: false });
     sim.onTransition(effects);
@@ -125,7 +127,7 @@ describe('validation and elapsed boundaries', () => {
     let sample = 0;
     let wake = () => {};
     const cleanup = jest.fn();
-    const effects = jest.fn();
+    const effects = jest.fn<void, [readonly QueueItem[]]>();
     const sim = new StatefulSimulation([{ kind: 'a', duration: 1 }], {
       now: () => sample++,
       schedule: (callback) => {
@@ -157,7 +159,7 @@ describe('validation and elapsed boundaries', () => {
       }
     );
     const change = jest.fn();
-    const effects = jest.fn();
+    const effects = jest.fn<void, [readonly QueueItem[]]>();
     sim.start();
     sim.onChange(change, { withCurrent: false });
     sim.onTransition(effects);
@@ -174,8 +176,8 @@ describe('validation and elapsed boundaries', () => {
   });
   it('uses one validated clock sample for catch-up and restart', () => {
     const samples = [0, 1500, NaN];
-    const now = jest.fn(() => samples.shift()!);
-    const effects = jest.fn();
+    const now = jest.fn(() => assertExists(samples.shift()));
+    const effects = jest.fn<void, [readonly QueueItem[]]>();
     const sim = new StatefulSimulation(
       [
         { kind: 'a', duration: 1000 },
@@ -278,7 +280,7 @@ describe('validation and elapsed boundaries', () => {
       { kind: 'b', duration: 2 },
     ]);
     const change = jest.fn();
-    const effects = jest.fn();
+    const effects = jest.fn<void, [readonly QueueItem[]]>();
     sim.onChange(change, { withCurrent: false });
     sim.onTransition(effects);
     sim.advance(2);

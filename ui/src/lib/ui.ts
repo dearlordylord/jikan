@@ -1,19 +1,8 @@
-import {
-  Program,
-  NonEmptyState as NonEmptyFsmState,
-  push,
-  tick,
-  empty as fsmState0,
-  isEmpty,
-} from '@jikan0/fsm';
-import { lastRNEA } from '@jikan0/utils';
-import {
-  MAX_DURATION,
-  MAX_PROGRAM_STAGES,
-  QueueItem,
-  TransitionResult,
-  ValidationIssue,
-} from '@jikan0/fsm';
+import type { Program, NonEmptyState as NonEmptyFsmState } from '@jikan0/fsm';
+import { push, tick, empty as fsmState0, isEmpty } from '@jikan0/fsm';
+import { lastRNEA, assertRNEA } from '@jikan0/utils';
+import type { QueueItem, TransitionResult, ValidationIssue } from '@jikan0/fsm';
+import { MAX_DURATION, MAX_PROGRAM_STAGES } from '@jikan0/fsm';
 import * as S from '@effect/schema/Schema';
 
 // TODO program library
@@ -344,7 +333,7 @@ export const simpleModeSelectorToProgram = (
   }
   return {
     ok: true,
-    program: Object.freeze(program) as Program<SimpleProgramStep>,
+    program: Object.freeze(assertRNEA(program)),
   };
 };
 

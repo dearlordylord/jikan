@@ -1,5 +1,6 @@
-import { createElapsedDriver, ElapsedScheduler, ElapsedDriverResult, intervalScheduler } from '@jikan0/adapters';
-import { QueueItem, ValidationIssue } from '@jikan0/fsm';
+import type { ElapsedScheduler, ElapsedDriverResult } from '@jikan0/adapters';
+import { createElapsedDriver, intervalScheduler } from '@jikan0/adapters';
+import type { QueueItem, ValidationIssue } from '@jikan0/fsm';
 import * as ui from '@jikan0/ui';
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 
@@ -41,7 +42,9 @@ export const useTimeGremlin = (options: TimeGremlinOptions) => {
         current.dispatch(ui.TimePassedEvent(milliseconds));
         return;
       }
-      const result = ui.reduce(ui.TimePassedEvent(milliseconds))(currentState.current);
+      const result = ui.reduce(ui.TimePassedEvent(milliseconds))(
+        currentState.current
+      );
       if (!result.ok) {
         current.onIssues?.(result.issues);
         return;
@@ -55,25 +58,41 @@ export const useTimeGremlin = (options: TimeGremlinOptions) => {
   // Scheduling depends on configuration/session status, never callback/state identity.
   useEffect(() => {
     const delay = Number(speed);
-    if (!schedule && (!Number.isSafeInteger(delay) || delay <= 0 || delay > 2147483647)) {
-      latest.current.onIssues?.([{ path: 'speed', code: 'invalid-cadence', message: 'Scheduling cadence must be positive, safe integral milliseconds.' }]);
+    if (
+      !schedule &&
+      (!Number.isSafeInteger(delay) || delay <= 0 || delay > 2147483647)
+    ) {
+      latest.current.onIssues?.([
+        {
+          path: 'speed',
+          code: 'invalid-cadence',
+          message:
+            'Scheduling cadence must be positive, safe integral milliseconds.',
+        },
+      ]);
       return;
     }
     const cadence = schedule ?? intervalScheduler(delay);
     const driver = createElapsedDriver({
-      now,
-      schedule: appetite === undefined ? cadence : () => {
-        let active = true;
-        const cancel = cadence(() => {
-          if (active && driver.isRunning()) inputRef.current(appetite);
-        });
-        return () => { active = false; cancel(); };
-      },
+      ...(now === undefined ? {} : { now }),
+      schedule:
+        appetite === undefined
+          ? cadence
+          : () => {
+              let active = true;
+              const cancel = cadence(() => {
+                if (active && driver.isRunning()) inputRef.current(appetite);
+              });
+              return () => {
+                active = false;
+                cancel();
+              };
+            },
       integralMilliseconds: true,
-      onElapsed: milliseconds => {
+      onElapsed: (milliseconds) => {
         if (appetite === undefined) inputRef.current(BigInt(milliseconds));
       },
-      onIssue: issue => latest.current.onIssues?.([issue]),
+      onIssue: (issue) => latest.current.onIssues?.([issue]),
     });
     driverRef.current = driver;
     if (latest.current.uiState.running === 'running') driver.start();

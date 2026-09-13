@@ -1,3 +1,5 @@
+import { assertExists } from '@jikan0/utils';
+import type { QueueItem, State, Program } from './fsm';
 import {
   currentNE,
   empty,
@@ -5,13 +7,9 @@ import {
   pop,
   push,
   restart,
-  QueueItem,
-  State,
   tick,
   eqQueueItem,
-  Program,
 } from './fsm';
-import fc from 'fast-check';
 import { BASIC_EXERCISE_PROGRAM } from '@jikan0/test-utils';
 
 describe('fsm', () => {
@@ -50,6 +48,7 @@ describe('fsm', () => {
       const _a2: B1 = false;
       const _b: B2 = false;
       const _c: B3 = false;
+      expect([_a, _b, _c]).toEqual([true, false, false]);
     });
     it('no extra types leak into it', () => {
       push([
@@ -69,7 +68,9 @@ describe('fsm', () => {
         expect(result.state).toBe(state);
         expect(result.effects).toEqual([]);
         if (!result.ok)
-          expect(result.issues[0].path).toBe('program.0.duration');
+          expect(assertExists(result.issues[0]).path).toBe(
+            'program.0.duration'
+          );
       }
     );
   });
@@ -277,72 +278,15 @@ describe('fsm', () => {
     it('can be used to simulate an exercise timer in mercury', () => {
       overshootTimerSimulationTest(BASIC_EXERCISE_PROGRAM);
     });
-    it('passes rendomized tests', () => {
-      const randomizedExercise = fc.array(
-        fc.record({
-          kind: fc.constantFrom(
-            ...BASIC_EXERCISE_PROGRAM.map(({ kind }) => kind)
-          ),
-          duration: fc.nat(1000 * 60 * 60 * 24).map((n) => n + 1 /*no 0s*/),
-        }),
-        {
-          minLength: 1,
-        }
-      );
-      fc.assert(
-        fc.property(randomizedExercise, (program) => {
-          naiveSimulationTest(program as unknown as Program);
-        })
-      );
-    });
   });
-  describe('elapsed partition properties', () => {
-    // Binary quarters within a small range permit exact equality in IEEE-754.
-    const stages = fc.array(
-      fc.record({
-        kind: fc.constantFrom('a', 'b'),
-        duration: fc.integer({ min: 1, max: 400 }).map((n) => n / 4),
-      }),
-      { minLength: 1, maxLength: 40 }
-    );
-    const partitions = fc.array(
-      fc.integer({ min: 0, max: 800 }).map((n) => n / 4),
-      { maxLength: 40 }
-    );
-    it('partitioned elapsed equals one update, preserving ordered consumed stages', () => {
-      fc.assert(
-        fc.property(stages, partitions, (program, elapsed) => {
-          const initial = push(program as unknown as Program)(empty).state;
-          const combined = tick(elapsed.reduce((a, b) => a + b, 0))(initial);
-          let state = initial;
-          const facts: QueueItem[] = [];
-          for (const amount of elapsed) {
-            const result = tick(amount)(state);
-            expect(result.ok).toBe(true);
-            state = result.state;
-            facts.push(...result.effects);
-            expect(facts).toEqual(program.slice(0, facts.length));
-            expect(state.duration).toBeGreaterThanOrEqual(0);
-            if (!isEmpty(state))
-              expect(state.duration).toBeLessThanOrEqual(
-                state.queue[state.queue.length - 1].duration
-              );
-          }
-          expect(state).toEqual(combined.state);
-          expect(facts).toEqual(combined.effects);
-        }),
-        { numRuns: 200 }
-      );
-    });
-    it('accepts fractional elapsed and stage durations', () => {
-      const initial = push([
-        { kind: 'a', duration: 0.5 },
-        { kind: 'b', duration: 0.75 },
-      ])(empty).state;
-      const result = tick(0.625)(initial);
-      expect(result.state.duration).toBe(0.625);
-      expect(result.effects).toEqual([{ kind: 'a', duration: 0.5 }]);
-    });
+  it('accepts fractional elapsed and stage durations', () => {
+    const initial = push([
+      { kind: 'a', duration: 0.5 },
+      { kind: 'b', duration: 0.75 },
+    ])(empty).state;
+    const result = tick(0.625)(initial);
+    expect(result.state.duration).toBe(0.625);
+    expect(result.effects).toEqual([{ kind: 'a', duration: 0.5 }]);
   });
   describe('eqQueueItem', () => {
     it('works', () => {

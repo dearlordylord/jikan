@@ -1,18 +1,21 @@
-import {
-  empty,
+import type {
   QueueItem,
-  tick,
-  push,
-  restart,
   State,
-  isEmpty,
-  current,
   Program,
   TransitionResult,
   ValidationIssue,
+} from '@jikan0/fsm';
+import {
+  empty,
+  tick,
+  push,
+  restart,
+  isEmpty,
+  current,
   validateDuration,
 } from '@jikan0/fsm';
-import { createElapsedDriver, ElapsedDriverResult } from './elapsedDriver';
+import type { ElapsedDriverResult } from './elapsedDriver';
+import { createElapsedDriver } from './elapsedDriver';
 
 export type StatefulSimulationOpts = {
   leniency?: number;
@@ -83,7 +86,7 @@ export class StatefulSimulation<Kind extends string = string> {
     else this.#reportIssues(result.issues);
     this.#state0 = this.#state;
     this.#driver = createElapsedDriver({
-      now: opts.now,
+      ...(opts.now === undefined ? {} : { now: opts.now }),
       schedule:
         opts.schedule ??
         ((callback) => {
@@ -127,7 +130,8 @@ export class StatefulSimulation<Kind extends string = string> {
     this.#notifying = true;
     try {
       while (this.#notificationBatches.length) {
-        const batch = this.#notificationBatches.shift()!;
+        const batch = this.#notificationBatches.shift();
+        if (batch === undefined) break;
         if (batch.changed)
           this.#listeners.forEach((listener) => listener(batch.next));
         if (batch.effects.length) {

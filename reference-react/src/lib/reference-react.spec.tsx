@@ -13,17 +13,22 @@ jest.mock('@jikan0/react-time-gremlin', () => ({
   },
 }));
 
+const roundsInput = () => {
+  const input = screen.getByLabelText('rounds:');
+  if (!(input instanceof HTMLInputElement))
+    throw new Error('rounds must be an input');
+  return input;
+};
+
 describe('ReferenceReact', () => {
   it.each(['', '0', '-1', '5001', '4294967296', '1.5', '9007199254740993'])(
     'shows feedback for invalid rounds %s without losing valid settings',
     (value) => {
       render(<ReferenceReact />);
-      const input = screen.getByLabelText('rounds:') as HTMLInputElement;
+      const input = screen.getByLabelText('rounds:');
       fireEvent.change(input, { target: { value } });
       expect(screen.getByRole('alert')).toBeTruthy();
-      expect((screen.getByText('Start') as HTMLButtonElement).disabled).toBe(
-        true
-      );
+      expect(screen.getByText('Start').hasAttribute('disabled')).toBe(true);
       fireEvent.change(input, { target: { value: '2' } });
       expect(screen.queryByRole('alert')).toBeNull();
       fireEvent.click(screen.getByText('Start'));
@@ -42,9 +47,7 @@ describe('ReferenceReact', () => {
     fireEvent.change(screen.getByLabelText(label), { target: { value } });
     expect(screen.getByRole('alert')).toBeTruthy();
     expect(screen.getByRole('status').textContent).toBe('Ready');
-    expect((screen.getByText('Start') as HTMLButtonElement).disabled).toBe(
-      true
-    );
+    expect(screen.getByText('Start').hasAttribute('disabled')).toBe(true);
   });
 
   it('keeps multiple invalid drafts blocked until every field is corrected', () => {
@@ -59,9 +62,7 @@ describe('ReferenceReact', () => {
       target: { value: '2' },
     });
     expect(screen.getByRole('alert').textContent).toContain('exerciseTimeMs');
-    expect((screen.getByText('Start') as HTMLButtonElement).disabled).toBe(
-      true
-    );
+    expect(screen.getByText('Start').hasAttribute('disabled')).toBe(true);
   });
   it('renders preparation, paused retained progress, final round and completion distinctly from stop', () => {
     render(<ReferenceReact />);
@@ -73,18 +74,18 @@ describe('ReferenceReact', () => {
     });
     fireEvent.click(screen.getByText('Start'));
     expect(screen.getByRole('status').textContent).toContain('Preparation');
-    expect(
-      (screen.getByLabelText('rounds:') as HTMLInputElement).disabled
-    ).toBe(true);
+    expect(screen.getByLabelText('rounds:').hasAttribute('disabled')).toBe(
+      true
+    );
     act(() => advance(ui.TimePassedEvent(BigInt(4000))));
     expect(screen.getByRole('status').textContent).toContain('Round 1 of 2');
     fireEvent.click(screen.getByText('Pause'));
     expect(screen.getByRole('status').textContent).toContain(
       'Paused: Round 1 of 2: exercise — 29000 ms'
     );
-    expect(
-      (screen.getByLabelText('rounds:') as HTMLInputElement).disabled
-    ).toBe(true);
+    expect(screen.getByLabelText('rounds:').hasAttribute('disabled')).toBe(
+      true
+    );
     act(() => advance(ui.TimePassedEvent(BigInt(1000))));
     expect(screen.getByRole('status').textContent).toContain('29000 ms');
     fireEvent.click(screen.getByText('Continue'));
@@ -92,14 +93,10 @@ describe('ReferenceReact', () => {
     expect(screen.getByRole('status').textContent).toContain('Round 2 of 2');
     act(() => advance(ui.TimePassedEvent(BigInt(30000))));
     expect(screen.getByRole('status').textContent).toBe('Completed');
-    expect((screen.getByLabelText('rounds:') as HTMLInputElement).value).toBe(
-      '2'
-    );
+    expect(roundsInput().value).toBe('2');
     fireEvent.click(screen.getByText('Start'));
     fireEvent.click(screen.getByText('Stop'));
     expect(screen.getByRole('status').textContent).toBe('Ready');
-    expect((screen.getByLabelText('rounds:') as HTMLInputElement).value).toBe(
-      '2'
-    );
+    expect(roundsInput().value).toBe('2');
   });
 });

@@ -1,39 +1,26 @@
-Optional stateful adapter for the general timer engine. Workout consumers keep
-owning their declarative model state.
-
+# Timer adapters
+`StatefulSimulation` is an optional state owner for the general timer engine.
+Workout consumers can keep owning their declarative model state.
 ```ts
 const created = StatefulSimulation.create([{ kind: 'exercise', duration: 1000 }]);
 if (!created.ok) showIssues(created.issues);
 else {
   const timer = created.timer;
-  const unsubscribe = timer.onValidation(showIssues);
-  const unlisten = timer.onTransition(playTransitionEffects);
+  const offIssues = timer.onValidation(showIssues);
+  const offTransitions = timer.onTransition(playTransitionEffects);
   const result = timer.push([{ kind: 'rest', duration: 500 }]);
   if (!result.ok) showIssues(result.issues);
   timer.start();
-  // Cleanup: unsubscribe(); unlisten(); timer.dispose();
+  // timer.pause(), timer.advance(250), timer.restart(), timer.reset()
+  offIssues(); offTransitions(); timer.dispose();
 }
 ```
-
-Construction via `new StatefulSimulation` also exposes `initializationResult`;
-an invalid initial program/options leaves an empty valid timer, reports issues
-through `onValidation` when provided, and cannot start. Push and manual `advance`
-return the core explicit result and do not notify success listeners on rejection.
-`onTransition` delivers ordered consumed stages, including equal adjacent stages.
-Start/pause lifecycle changes notify `onChange` so integrations can update status.
-Constructor callbacks run immediately; React integrations subscribe after commit.
-
-The adapter reuses the injectable elapsed driver. Delayed callbacks consume
-measured time; pause accounts for time through its boundary, resume excludes the
-paused interval. Restart first accounts for measured time through one validated
-boundary, then rebases measurement and restores the actual current stage. A
-delayed restart can therefore consume earlier stages before restarting the next. `dispose` cancels scheduling. Framework cleanup may `suspend()` without
-flushing effects or disabling later reuse. Notification batches remain ordered
-even when a listener commits another transition. Running reset rebases the clock.
-The default clock is `performance.now()`; no portable inclusion of OS-sleep time,
-execution while frozen, or restoration after discard is promised.
-
-Scheduling intervals are finite positive milliseconds at most 2147483647, the
-platform timer limit; oversized intervals are rejected before scheduling can
-silently clamp them. Duration/program bounds are documented in the core README.
-Adapter `reset` restores its initial snapshot, while core reset empties its queue.
+`create` returns `{ok: true, timer}` or `{ok: false, issues}`; `push` and `advance`
+return the core result shape. Rejection preserves state and emits no success
+notification; transitions arrive in consumption order.
+`createElapsedDriver` serves consumer-owned state. Inject `now` and `schedule` in
+tests; the default clock is `performance.now()`. Pause accounts for its boundary;
+delayed wakes catch up running time. `suspend()` allows reuse and `dispose()` ends it.
+Scheduling intervals are finite positive milliseconds no greater than `2147483647`.
+Adapter `reset` restores its initial snapshot; core `reset` empties its queue.
+See the [core bounds](../fsm/README.md).
