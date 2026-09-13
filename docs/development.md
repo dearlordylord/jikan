@@ -126,6 +126,7 @@ settings preserved; natural completion is distinct. See
 `StatefulSimulation.create(program, options)` is an optional convenience for a
 general timer, returning either `{ok:true,timer}` or validation issues with valid
 state. `timer.advance` and `timer.push` use the same explicit-result contract;
+restart accounts for delayed elapsed time before restoring the current stage;
 `onTransition` reports ordered facts and `onValidation` reports errors.
 See [adapter examples](../adapters/README.md).
 

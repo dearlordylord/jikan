@@ -144,6 +144,90 @@ describe('validation and elapsed boundaries', () => {
     expect(cleanup).toHaveBeenCalledTimes(1);
   });
 
+  it('rejects an invalid restart sample without changing initial valid state or effects', () => {
+    let now = 0;
+    const sim = new StatefulSimulation(
+      [
+        { kind: 'a', duration: 1000 },
+        { kind: 'b', duration: 1000 },
+      ],
+      {
+        now: () => now,
+        schedule: () => () => undefined,
+      }
+    );
+    const change = jest.fn();
+    const effects = jest.fn();
+    sim.start();
+    sim.onChange(change, { withCurrent: false });
+    sim.onTransition(effects);
+    now = NaN;
+    const rejected = sim.restart();
+    expect(rejected.ok).toBe(false);
+    expect(rejected.state).toBe(sim.initializationResult.state);
+    expect(rejected.effects).toEqual([]);
+    expect(sim.current()).toEqual({ kind: 'a', duration: 1000 });
+    expect(sim.length()).toBe(2);
+    expect(change).not.toHaveBeenCalled();
+    expect(effects).not.toHaveBeenCalled();
+    sim.dispose();
+  });
+  it('uses one validated clock sample for catch-up and restart', () => {
+    const samples = [0, 1500, NaN];
+    const now = jest.fn(() => samples.shift()!);
+    const effects = jest.fn();
+    const sim = new StatefulSimulation(
+      [
+        { kind: 'a', duration: 1000 },
+        { kind: 'b', duration: 1000 },
+      ],
+      {
+        now,
+        schedule: () => () => undefined,
+        onTransition: effects,
+      }
+    );
+    sim.start();
+    expect(sim.restart().ok).toBe(true);
+    expect(now).toHaveBeenCalledTimes(2);
+    expect(sim.current()).toEqual({ kind: 'b', duration: 1000 });
+    expect(effects).toHaveBeenCalledTimes(1);
+    effects.mockClear();
+    const rejected = sim.restart();
+    expect(rejected.ok).toBe(false);
+    expect(rejected.state.duration).toBe(1000);
+    expect(rejected.effects).toEqual([]);
+    expect(sim.current()).toEqual({ kind: 'b', duration: 1000 });
+    expect(effects).not.toHaveBeenCalled();
+    sim.dispose();
+  });
+  it('catches up delayed elapsed before restarting the actual current stage', () => {
+    let now = 0;
+    const effects: string[] = [];
+    const sim = new StatefulSimulation(
+      [
+        { kind: 'a', duration: 1000 },
+        { kind: 'b', duration: 1000 },
+      ],
+      {
+        now: () => now,
+        schedule: () => () => undefined,
+        onTransition: (items) =>
+          effects.push(...items.map((item) => item.kind)),
+      }
+    );
+    sim.start();
+    now = 1500;
+    const result = sim.restart();
+    expect(result.ok).toBe(true);
+    expect(sim.current()).toEqual({ kind: 'b', duration: 1000 });
+    expect(sim.length()).toBe(1);
+    expect(effects).toEqual(['a']);
+    now = 1600;
+    sim.pause();
+    expect(sim.current()).toEqual({ kind: 'b', duration: 900 });
+    sim.dispose();
+  });
   it('rebases a running snapshot reset', () => {
     let now = 0;
     let wake = () => {};

@@ -55,10 +55,7 @@ export const createElapsedDriver = (options: ElapsedDriverOptions) => {
       );
     return value;
   };
-  const flush = (): ElapsedDriverResult => {
-    if (!running || delivering) return success;
-    const value = sample();
-    if (typeof value !== 'number') return value;
+  const accountSample = (value: number): ElapsedDriverResult => {
     const elapsed = value - (lastSample ?? value) + carry;
     if (!Number.isFinite(elapsed) || elapsed > MAX_DURATION)
       return reject(
@@ -82,6 +79,12 @@ export const createElapsedDriver = (options: ElapsedDriverOptions) => {
       }
     }
     return success;
+  };
+  const flush = (): ElapsedDriverResult => {
+    if (!running || delivering) return success;
+    const value = sample();
+    if (typeof value !== 'number') return value;
+    return accountSample(value);
   };
   const unschedule = () => {
     running = false;
@@ -114,11 +117,18 @@ export const createElapsedDriver = (options: ElapsedDriverOptions) => {
     unschedule();
     return success;
   };
-  const restart = (): ElapsedDriverResult => {
+  const restart = (
+    opts: { accountElapsed?: boolean } = {}
+  ): ElapsedDriverResult => {
     if (disposed) return success;
     const value = sample();
     if (typeof value !== 'number') return value;
-    // The consumer resets its model at this boundary; earlier time belongs to it.
+    if (opts.accountElapsed && running && !delivering) {
+      const accounted = accountSample(value);
+      if (!accounted.ok) return accounted;
+    }
+    // Account and rebase use the same validated sample. Default restart only
+    // discards prior measurement; timer adapters opt into boundary catch-up.
     lastSample = value;
     carry = 0;
     if (running) {

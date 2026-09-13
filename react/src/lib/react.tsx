@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 /** Compare ordered stage values directly: sums/hashes lose order and collide. */
 export const areProgramsEqual = (a: readonly QueueItem[], b: readonly QueueItem[]) =>
   a.length === b.length && a.every((item, index) =>
-    item.kind === b[index].kind && item.duration === b[index].duration);
+    item.kind === b[index].kind && Object.is(item.duration, b[index].duration));
 
 export const makeUseTimer = (opts?: StatefulSimulationOpts) =>
   <Kind extends string = string>(program: Program<Kind>) => {
@@ -20,6 +20,7 @@ export const makeUseTimer = (opts?: StatefulSimulationOpts) =>
       running: false,
     });
     const committedProgram = useRef<readonly QueueItem<Kind>[]>();
+    const rejectedProgram = useRef<readonly QueueItem<Kind>[]>();
     useEffect(() => {
       const unsubscribe = sim.onChange(current => {
         setSnapshot({ current, running: sim.isRunning() });
@@ -36,16 +37,21 @@ export const makeUseTimer = (opts?: StatefulSimulationOpts) =>
       };
     }, [sim]);
     useEffect(() => {
-      if (committedProgram.current && areProgramsEqual(committedProgram.current, program)) return;
+      if (committedProgram.current && areProgramsEqual(committedProgram.current, program)) {
+        rejectedProgram.current = undefined;
+        return;
+      }
+      if (rejectedProgram.current && areProgramsEqual(rejectedProgram.current, program)) return;
       const checked = push(program)(empty);
       if (!checked.ok) {
-        committedProgram.current = program.map(item => ({ ...item }));
+        rejectedProgram.current = program.map(item => ({ ...item }));
         opts?.onValidation?.(checked.issues);
         return;
       }
       const stopped = sim.stop();
       if (!stopped.ok) return;
       sim.push(program);
+      rejectedProgram.current = undefined;
       committedProgram.current = program.map(item => ({ ...item }));
     }, [program, sim]);
     const controls = useMemo(() => ({

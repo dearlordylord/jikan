@@ -25,7 +25,9 @@ Constructor callbacks run immediately; React integrations subscribe after commit
 
 The adapter reuses the injectable elapsed driver. Delayed callbacks consume
 measured time; pause accounts for time through its boundary, resume excludes the
-paused interval, and restart rebases measurement. `dispose` cancels scheduling. Framework cleanup may `suspend()` without
+paused interval. Restart first accounts for measured time through one validated
+boundary, then rebases measurement and restores the actual current stage. A
+delayed restart can therefore consume earlier stages before restarting the next. `dispose` cancels scheduling. Framework cleanup may `suspend()` without
 flushing effects or disabling later reuse. Notification batches remain ordered
 even when a listener commits another transition. Running reset rebases the clock.
 The default clock is `performance.now()`; no portable inclusion of OS-sleep time,

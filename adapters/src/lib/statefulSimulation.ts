@@ -175,7 +175,9 @@ export class StatefulSimulation<Kind extends string = string> {
       : { ok: false, state: this.#state, issues: result.issues, effects: [] };
   }
   restart = () => {
-    const boundary = this.#driver.restart();
+    // Catch up before selecting the current stage: a delayed wake-up may
+    // already have crossed into the next stage at the restart boundary.
+    const boundary = this.#driver.restart({ accountElapsed: true });
     if (!boundary.ok) return this.#clockResult(boundary);
     return this.#commit({ ok: true, state: restart(this.#state), effects: [] });
   };

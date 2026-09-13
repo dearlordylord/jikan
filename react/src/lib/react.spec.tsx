@@ -122,3 +122,25 @@ it('emits ordered identical-stage transitions once and does not flush transition
   unmount();
   expect(onTransition).toHaveBeenCalledTimes(1);
 });
+
+it('preserves accepted progress when rejected replacement is followed by an equivalent accepted program', () => {
+  const onValidation = jest.fn();
+  const timer = makeUseTimer({ onValidation });
+  const { result, rerender } = renderHook(timer, {
+    initialProps: [{ kind: 'a', duration: 1000 }] as Program,
+  });
+  act(() => { result.current.start(); });
+  act(() => jest.advanceTimersByTime(400));
+  expect(result.current.current?.duration).toBe(600);
+  rerender([{ kind: 'b', duration: -1 }]);
+  expect(onValidation).toHaveBeenCalledTimes(1);
+  expect(result.current.running).toBe(true);
+  expect(result.current.current).toEqual({ kind: 'a', duration: 600 });
+  rerender([{ kind: 'b', duration: -1 }]);
+  expect(onValidation).toHaveBeenCalledTimes(1);
+  rerender([{ kind: 'a', duration: 1000 }]);
+  expect(result.current.running).toBe(true);
+  expect(result.current.current).toEqual({ kind: 'a', duration: 600 });
+  act(() => jest.advanceTimersByTime(100));
+  expect(result.current.current?.duration).toBe(500);
+});
