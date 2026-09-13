@@ -18,9 +18,11 @@ it('applies consecutive dispatches against current state and performs committed 
   );
   const dispatch = result.current.dispatch;
   act(() => {
-    dispatch(ui.StartClickedEvent());
+    const started = dispatch(ui.StartClickedEvent());
+    expect(dispatch.getState()).toBe(started.state);
     dispatch(ui.TimePassedEvent(BigInt(3000)));
-    dispatch(ui.TimePassedEvent(BigInt(3000)));
+    const advanced = dispatch(ui.TimePassedEvent(BigInt(3000)));
+    expect(dispatch.getState()).toBe(advanced.state);
   });
   const state = result.current.state;
   expect(state.running).toBe('running');

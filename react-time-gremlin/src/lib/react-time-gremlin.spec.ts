@@ -25,6 +25,7 @@ it('measures irregular wake-ups and uses the latest consumer dispatch without re
     uiState: running(),
     setUiState: jest.fn(),
     dispatch,
+    getState: running,
     now,
     schedule,
   };
@@ -66,6 +67,7 @@ it('flushes before pause, preserves fractional carry, and excludes paused time o
     uiState: state,
     setUiState: jest.fn(),
     dispatch,
+    getState: running,
     now,
     schedule,
   };
@@ -103,6 +105,7 @@ it('keeps deterministic manual input available and rejects bad clocks without mo
       uiState: running(),
       setUiState: jest.fn(),
       dispatch,
+      getState: running,
       onIssues,
       now: () => nowMs,
       schedule,
@@ -131,6 +134,7 @@ it('ignores a deterministic callback canceled by restart or unmount', () => {
       uiState: running(),
       setUiState: jest.fn(),
       dispatch,
+      getState: running,
       now,
       schedule,
       appetite: BigInt(10),
@@ -202,7 +206,10 @@ it('rejects scheduler delays beyond the platform timer bound', () => {
 
 it('shares control boundaries, orders pause catch-up, and rejects invalid control clocks', () => {
   let sample = 0;
-  const dispatch = jest.fn();
+  let state = ui.state0;
+  const dispatch = jest.fn((action: ui.Action) => {
+    state = ui.reduce(action)(state).state;
+  });
   const now = () => sample;
   const schedule = () => () => undefined;
   const { result } = renderHook(() =>
@@ -210,6 +217,7 @@ it('shares control boundaries, orders pause catch-up, and rejects invalid contro
       uiState: ui.state0,
       setUiState: jest.fn(),
       dispatch,
+      getState: () => state,
       now,
       schedule,
     })
@@ -243,4 +251,59 @@ it('shares control boundaries, orders pause catch-up, and rejects invalid contro
     expect(result.current.onAction(ui.ContinueClickedEvent()).ok).toBe(false);
   });
   expect(dispatch).toHaveBeenCalledTimes(3);
+});
+
+it('uses authoritative state for no-op controls and consecutive lifecycle actions before React commits', () => {
+  let sample = 0;
+  let state = ui.state0;
+  let wake: () => void = () => undefined;
+  const dispatch = jest.fn((action: ui.Action) => {
+    state = ui.reduce(action)(state).state;
+  });
+  const schedule = jest.fn((callback: () => void) => {
+    wake = callback;
+    return () => undefined;
+  });
+  const { result } = renderHook(() =>
+    useTimeGremlin({
+      uiState: ui.state0,
+      setUiState: jest.fn(),
+      dispatch,
+      getState: () => state,
+      now: () => sample,
+      schedule,
+    })
+  );
+  act(() => {
+    result.current.onAction(ui.ContinueClickedEvent());
+    expect(schedule).not.toHaveBeenCalled();
+    result.current.onAction(ui.StartClickedEvent());
+    sample = 400;
+    result.current.onAction(ui.StartClickedEvent());
+    sample = 500;
+    wake();
+    expect(ui.view(state).running).toBe('running');
+    const view = ui.view(state);
+    if (view.running !== 'running') throw new Error('expected running workout');
+    expect(view.timerStats.round.leftMs).toBe(BigInt(2500));
+    result.current.onAction(ui.StopClickedEvent());
+    sample = 1000;
+    result.current.onAction(ui.StartClickedEvent());
+    sample = 1100;
+    result.current.onAction(ui.PauseClickedEvent());
+    result.current.onAction(ui.StartClickedEvent());
+    sample = 5000;
+    result.current.onAction(ui.ContinueClickedEvent());
+    sample = 5100;
+    wake();
+    const resumed = ui.view(state);
+    if (resumed.running !== 'running')
+      throw new Error('expected resumed workout');
+    expect(resumed.timerStats.round.leftMs).toBe(BigInt(2800));
+    result.current.advance(BigInt(100000000));
+    expect(state.running).toBe('completed');
+    const schedules = schedule.mock.calls.length;
+    result.current.onAction(ui.ContinueClickedEvent());
+    expect(schedule).toHaveBeenCalledTimes(schedules);
+  });
 });

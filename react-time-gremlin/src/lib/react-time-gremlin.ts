@@ -7,8 +7,6 @@ import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 export type TimeGremlinOptions = {
   uiState: ui.State;
   setUiState: (state: ui.State) => void;
-  /** A synchronous dispatch against the consumer's authoritative latest state. */
-  dispatch?: (action: ui.Action) => void;
   onTick?: (state: ui.State) => void;
   onTransition?: (effects: readonly QueueItem[]) => void;
   onIssues?: (issues: readonly ValidationIssue[]) => void;
@@ -17,7 +15,14 @@ export type TimeGremlinOptions = {
   speed?: bigint;
   /** Explicit deterministic input per wake-up. Omit for measured production time. */
   appetite?: bigint;
-};
+} & (
+  | {
+      /** Synchronously commit against the consumer's authoritative latest state. */
+      dispatch: (action: ui.Action) => void;
+      getState: () => ui.State;
+    }
+  | { dispatch?: never; getState?: never }
+);
 
 /**
  * Thin timing integration. onAction applies clock boundaries before consumer dispatch.
@@ -112,6 +117,23 @@ export const useTimeGremlin = (options: TimeGremlinOptions) => {
     return {
       /** Apply clock boundaries before dispatching to the consumer's state owner. */
       onAction: (action: ui.Action): ElapsedDriverResult => {
+        const current = latest.current;
+        const state = current.getState?.() ?? currentState.current;
+        const view = ui.view(state);
+        const active =
+          action._tag === 'StartClicked'
+            ? view.startButton.active
+            : action._tag === 'StopClicked'
+            ? view.stopButton.active
+            : action._tag === 'PauseClicked'
+            ? view.pauseButton.active
+            : action._tag === 'ContinueClicked'
+            ? view.continueButton.active
+            : false;
+        if (!active) {
+          actionRef.current(action);
+          return idle;
+        }
         const driver = driverRef.current;
         if (
           !driver &&

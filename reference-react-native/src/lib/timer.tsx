@@ -166,6 +166,7 @@ function ReactNativeTimer_() {
     uiState,
     setUiState,
     speed: BigInt(1000),
+    getState: dispatch.getState,
     dispatch: (action) => {
       const result = dispatch(action);
       if (result.ok && action._tag === 'TimePassed') onTick(result.state);

@@ -35,6 +35,7 @@ export function ReferenceReact({
     uiState,
     setUiState,
     dispatch,
+    getState: () => committed.current,
     onIssues: setIssues,
   });
   const view = ui.view(uiState);

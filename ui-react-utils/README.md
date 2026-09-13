@@ -8,4 +8,6 @@ no successful transition callback. Effects run outside rendering and React updat
 functions.
 
 When multiple integrations dispatch to the same workout, pass the same
-consumer-owned dispatch to each integration, including `useTimeGremlin`.
+consumer-owned dispatch to each integration. With `useTimeGremlin`, also pass
+`getState: dispatch.getState` so control boundaries see consecutive actions before
+React renders.

@@ -1,6 +1,6 @@
 import * as ui from '@jikan0/ui';
 import type { QueueItem, ValidationIssue } from '@jikan0/fsm';
-import { useCallback, useLayoutEffect, useRef } from 'react';
+import { useCallback, useLayoutEffect, useRef, useMemo } from 'react';
 
 /** Dispatch against the latest committed state; interpret effects after committing. */
 export const useOnAction = (options: {
@@ -15,7 +15,7 @@ export const useOnAction = (options: {
     state.current = options.uiState;
     latest.current = options;
   });
-  return useCallback((action: ui.Action) => {
+  const dispatch = useCallback((action: ui.Action) => {
     const result = ui.reduce(action)(state.current);
     state.current = result.state;
     latest.current.setUiState(result.state);
@@ -24,4 +24,8 @@ export const useOnAction = (options: {
       latest.current.onTransition?.(result.effects);
     return result;
   }, []);
+  return useMemo(
+    () => Object.assign(dispatch, { getState: () => state.current }),
+    [dispatch]
+  );
 };

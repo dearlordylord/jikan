@@ -8,7 +8,9 @@ successful effects. When using the `setUiState` fallback instead of `dispatch`,
 provide `onTransition(completedStages)` to observe those ordered facts. A supplied
 `dispatch` owns effect delivery itself. Keep effects outside rendering and React state updater functions.
 
-Use the returned `onAction(action)` for workout controls: it flushes before pause,
+Pass `getState: () => latestState` alongside `dispatch` for controls; `useOnAction`
+exposes this reader as `dispatch.getState`. Use the returned `onAction(action)` for
+workout controls: it flushes before pause,
 validates start/resume baselines, and resets carry for start/stop before dispatching.
 Rejected clock boundaries preserve workout state. `advance(bigint)` and explicit
 `appetite` provide deterministic input.
