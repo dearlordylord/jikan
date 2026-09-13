@@ -19,7 +19,7 @@ export const areProgramsEqual = (
 export const makeUseTimer =
   (opts?: StatefulSimulationOpts) =>
   <Kind extends string = string>(program: Program<Kind>) => {
-    const ref = useRef<StatefulSimulation<Kind>>();
+    const ref = useRef<StatefulSimulation<Kind> | undefined>(undefined);
     if (!ref.current) {
       const {
         onChange: _change,
@@ -37,9 +37,13 @@ export const makeUseTimer =
       current: null,
       running: false,
     });
-    const committedProgram = useRef<readonly QueueItem<Kind>[]>();
-    const rejectedProgram = useRef<readonly QueueItem<Kind>[]>();
-    const rejectedOversizedLength = useRef<number>();
+    const committedProgram = useRef<readonly QueueItem<Kind>[] | undefined>(
+      undefined
+    );
+    const rejectedProgram = useRef<readonly QueueItem<Kind>[] | undefined>(
+      undefined
+    );
+    const rejectedOversizedLength = useRef<number | undefined>(undefined);
     useEffect(() => {
       const unsubscribe = sim.onChange((current) => {
         setSnapshot({ current, running: sim.isRunning() });

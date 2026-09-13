@@ -1,12 +1,43 @@
 {
   "name": "@jikan0/ui-react-utils",
-  "version": "0.0.1",
-  "dependencies": {
-    "tslib": "^2.3.0",
-    "@jikan0/ui": "0.0.1",
-    "react": "18.2.0"
-  },
+  "version": "2.0.0",
   "type": "commonjs",
-  "main": "./src/index.js",
-  "typings": "./src/index.d.ts"
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "license": "MIT",
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dearlordylord/jikan.git",
+    "directory": "ui-react-utils"
+  },
+  "scripts": {
+    "build": "node ../tools/build-package.cjs",
+    "prepack": "cd .. && npx turbo run build --filter=@jikan0/ui-react-utils..."
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "@jikan0/fsm": "2.0.0",
+    "@jikan0/ui": "2.0.0"
+  },
+  "peerDependencies": {
+    "react": "^19.3.0"
+  }
 }

@@ -38,7 +38,9 @@ export const useTimeGremlin = (options: TimeGremlinOptions) => {
     latest.current = options;
     currentState.current = uiState;
   });
-  const driverRef = useRef<ReturnType<typeof createElapsedDriver>>();
+  const driverRef = useRef<ReturnType<typeof createElapsedDriver> | undefined>(
+    undefined
+  );
   const actionRef = useRef<(action: ui.Action) => void>(() => undefined);
   const inputRef = useRef<(milliseconds: bigint) => void>(() => undefined);
   useLayoutEffect(() => {
@@ -124,12 +126,12 @@ export const useTimeGremlin = (options: TimeGremlinOptions) => {
           action._tag === 'StartClicked'
             ? view.startButton.active
             : action._tag === 'StopClicked'
-            ? view.stopButton.active
-            : action._tag === 'PauseClicked'
-            ? view.pauseButton.active
-            : action._tag === 'ContinueClicked'
-            ? view.continueButton.active
-            : false;
+              ? view.stopButton.active
+              : action._tag === 'PauseClicked'
+                ? view.pauseButton.active
+                : action._tag === 'ContinueClicked'
+                  ? view.continueButton.active
+                  : false;
         if (!active) {
           actionRef.current(action);
           return idle;
@@ -151,10 +153,10 @@ export const useTimeGremlin = (options: TimeGremlinOptions) => {
           };
         const boundary =
           action._tag === 'PauseClicked'
-            ? driver?.pause() ?? idle
+            ? (driver?.pause() ?? idle)
             : action._tag === 'StartClicked' || action._tag === 'StopClicked'
-            ? driver?.restart() ?? idle
-            : idle;
+              ? (driver?.restart() ?? idle)
+              : idle;
         if (!boundary.ok) return boundary;
         if (
           action._tag === 'StartClicked' ||

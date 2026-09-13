@@ -3,7 +3,7 @@ import { push } from './fsm';
 import type { State } from './fsm';
 
 declare const initial: State<'a' | 'b' | 'c'>;
-const result = push([{ kind: 'a', duration: 1 }])(initial);
+export const result = push([{ kind: 'a', duration: 1 }])(initial);
 type Assert<T extends true> = T;
 export type PreservesKinds = Assert<
   typeof result.state extends State<'a' | 'b' | 'c'> ? true : false

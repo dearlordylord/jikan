@@ -5,7 +5,7 @@
     "declaration": true,
     "outDir": "./dist/maintained",
     "rootDir": ".",
-    "module": "commonjs"
+    "module": "Node16"
   },
   "exclude": [
     "**/*.spec.ts",
@@ -15,12 +15,5 @@
     "**/test-setup.ts",
     "**/test-setup.tsx",
     "**/*.typecheck.ts"
-  ],
-  "tsc-alias": {
-    "replacers": {
-      "base-url": {
-        "enabled": false
-      }
-    }
-  }
+  ]
 }

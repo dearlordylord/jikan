@@ -1,14 +1,36 @@
+const { workspaces } = require('./package.json');
+const { paths } = require('./tsconfig.base.json').compilerOptions;
+const moduleNameMapper = Object.fromEntries(
+  Object.entries(paths).map(([name, [file]]) => [
+    `^${name}$`,
+    `<rootDir>/../${file}`,
+  ])
+);
 module.exports = {
-  projects: [
-    '<rootDir>/reference-react-app/jest.config.ts',
-    '<rootDir>/reference-console/jest.config.ts',
-    '<rootDir>/utils/jest.config.ts',
-    '<rootDir>/fsm/jest.config.ts',
-    '<rootDir>/adapters/jest.config.ts',
-    '<rootDir>/ui/jest.config.ts',
-    '<rootDir>/react/jest.config.ts',
-    '<rootDir>/react-time-gremlin/jest.config.ts',
-    '<rootDir>/ui-react-utils/jest.config.ts',
-    '<rootDir>/reference-react/jest.config.ts',
-  ],
+  projects: workspaces.map((directory) => ({
+    displayName: directory,
+    rootDir: directory,
+    testMatch: [
+      '<rootDir>/src/**/*.spec.ts',
+      '<rootDir>/src/**/*.spec.tsx',
+      '<rootDir>/src/**/*.test.ts',
+      '<rootDir>/src/**/*.test.tsx',
+    ],
+    testEnvironment: directory.includes('react') ? 'jsdom' : 'node',
+    moduleNameMapper,
+    setupFiles: directory.includes('react')
+      ? ['<rootDir>/../reference-react/src/test-setup.ts']
+      : [],
+    transform: {
+      '^.+\\.[tj]sx?$': [
+        '@swc/jest',
+        {
+          jsc: {
+            parser: { syntax: 'typescript', tsx: true },
+            transform: { react: { runtime: 'automatic' } },
+          },
+        },
+      ],
+    },
+  })),
 };

@@ -38,7 +38,7 @@ testem.log
 .DS_Store
 Thumbs.db
 
-.nx/cache
+.turbo
 
 # Expo
 node_modules/
@@ -54,3 +54,4 @@ npm-debug.*
 *.orig.*
 web-build/
 cache/
+*.tgz

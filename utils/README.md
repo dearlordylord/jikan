@@ -1,11 +1,13 @@
-# utils
+# Utilities
 
-This library was generated with [Nx](https://nx.dev).
+Readonly array helpers and function composition used by Jikan's timer models.
 
-## Building
+```ts
+import { isRNEA, lastRNEA } from '@jikan0/utils';
 
-Run `nx build utils` to build the library.
+const stages = ['warmup', 'exercise'];
+if (isRNEA(stages)) console.log(lastRNEA(stages)); // exercise
+```
 
-## Running unit tests
-
-Run `nx test utils` to execute the unit tests via [Jest](https://jestjs.io).
+Assertion helpers throw on invalid input. See [development](../docs/development.md)
+for workspace checks and publishing.

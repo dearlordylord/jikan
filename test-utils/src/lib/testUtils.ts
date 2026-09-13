@@ -1,5 +1,4 @@
-const BASIC_ROUND_TYPES = ['warmup', 'exercise', 'rest', 'cooldown'] as const;
-type BasicRoundType = (typeof BASIC_ROUND_TYPES)[number];
+type BasicRoundType = 'warmup' | 'exercise' | 'rest' | 'cooldown';
 export const BASIC_EXERCISE_PROGRAM = (() => {
   const ONE_MINUTE = 60 * 1000;
   const TOTAL_ROUNDS = 10;

@@ -243,7 +243,7 @@ export function pipe<
   Q,
   R,
   S,
-  T
+  T,
 >(
   a: A,
   ab: (a: A) => B,

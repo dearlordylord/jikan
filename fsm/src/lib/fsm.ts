@@ -89,8 +89,7 @@ export type NonEmptyState<Kind extends string = string> = Readonly<{
 }>;
 
 export type State<Kind extends string = string> =
-  | NonEmptyState<Kind>
-  | EmptyState;
+  NonEmptyState<Kind> | EmptyState;
 
 export const empty: EmptyState = Object.freeze({
   duration: 0,
@@ -102,7 +101,9 @@ export const isEmpty = <Kind extends string>(
 ): state is EmptyState =>
   state.queue.length === 0 && assertTrue(/*defensive*/ state.duration === 0);
 
-export const restart = <Kind extends string>(state: State<Kind>): State<Kind> =>
+export const restart = <Kind extends string>(
+  state: State<Kind>
+): State<Kind> =>
   !isRNEA(state.queue) /*nothing to restart*/
     ? state
     : {

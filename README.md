@@ -13,4 +13,4 @@ Use Node.js 24. See [development](docs/development.md), [core](fsm/README.md),
 
 Demos: [web](reference-react/README.md), [terminal](reference-console/README.md).
 
-Deferred: [metronome](https://github.com/dearlordylord/jikan/issues/8) and [native](reference-react-native/README.md).
+Deferred: [metronome](https://github.com/dearlordylord/jikan/issues/8) and [native](archive/reference-react-native/README.md).

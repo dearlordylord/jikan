@@ -1,13 +1,37 @@
 {
   "name": "@jikan0/utils",
-  "version": "1.2.0",
-  "dependencies": {
-    "tslib": "^2.3.0"
-  },
-  "publishConfig": {
-    "access": "public"
-  },
+  "version": "2.0.0",
   "type": "commonjs",
-  "main": "./src/index.js",
-  "typings": "./src/index.d.ts"
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "license": "MIT",
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dearlordylord/jikan.git",
+    "directory": "utils"
+  },
+  "scripts": {
+    "build": "node ../tools/build-package.cjs",
+    "prepack": "cd .. && npx turbo run build --filter=@jikan0/utils..."
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {}
 }

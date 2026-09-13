@@ -1,44 +1,40 @@
 # Development
 
-Use Node.js 24 and the committed lockfile:
+Use Node.js 24 and npm 11.19.0 with the committed lockfile:
 
 ```sh
 npm ci --ignore-scripts --no-audit --no-fund
-npm run format
-npm run check:format
-npm run typecheck
-npm run lint
-npm test
-npm run build
 npm run check
-npm run dev       # http://localhost:4200
-npm run preview   # http://localhost:4300
+npm run dev          # http://localhost:4200
 npm run demo:terminal # after build, in an interactive terminal
 ```
 
-`npm run check` runs typecheck, lint, formatting, tests, and build.
+Turborepo builds the npm workspaces in dependency order and caches their `dist`
+outputs. `npm run check` runs strict TypeScript checks, typed ESLint, formatting,
+Jest, builds, and clean-consumer tarball checks. `npm run format` formats source.
+TypeScript 7.0.2 performs checks and declaration/JavaScript emission; TypeScript 6
+is installed under `typescript` only for ESLint's JavaScript compiler API.
+Jest uses SWC for transformation and React tests use React 19.
 
-These commands cover the maintained libraries and both terminal and browser demos. Legacy
-Nx, Expo/native, and experimental XState tasks remain separate workflows; a
-passing maintained check does not validate those projects.
+The [archived native and XState demos](../archive/README.md) are outside the
+workspace and its checks. They retain their historical configuration.
 
-## Demo dependencies
+## Publishing
 
-The browser workspace pins React/React DOM 19.3.0, Vite 8.3.0 and its React
-plugin 6.1.1, checked against npm when implementing #7. Vite 8 supports Node.js
-24; see its [migration guide](https://vite.dev/guide/migration). The demo uses
-`createRoot`, StrictMode, native form controls and Jikan's hooks; no styling or
-form framework is needed.
+The ten libraries publish separately under their existing names (`jikan0` for
+`facade`, `@jikan0/*` for the others). Demos and the root are private. Releases
+use one version, exact internal dependency versions, public tarballs, and
+prerelease channels (`alpha`, `beta`, `rc`) or `latest` for stable releases.
+Version 2.0.0 marks the current API and Node 24/React 19 requirements.
 
-The root retains React 18.2 for Expo 50/React Native 0.73 and Vite 5 for Nx 18's
-peer constraints. The web workspace isolates current versions without overriding
-those constraints. Vite deduplicates React at the app root; browser demo Jest
-projects resolve the same workspace React and Testing Library 16. Library tests
-still exercise React 18 compatibility. Shared source uses React 18-compatible
-types and APIs. Use the root npm scripts for the maintained demos, not legacy Nx
-targets.
+Run `npm run version:set -- X.Y.Z`, then `npm install --package-lock-only` and
+commit the manifests and lockfile. `npm run local-release` reinstalls from the
+lockfile, checks the workspace, verifies tarballs in a temporary consumer, and
+runs npm publish in dry-run mode. Inspect that result before publishing.
 
-[Terminal Kit](https://github.com/cronvel/terminal-kit) 3.1.4 supports Node.js 16.13+
-and provides the terminal's display, keys and bell. One key listener and one
-elapsed driver replace recurring menus and fixed-tick accounting. Only completed
-stage effects ring the bell; quit and signals dispose the clock and release input.
+`npm run local-release -- --publish` requires a clean `master` matching
+`origin/master` and npm authentication. It publishes verified tarballs in
+dependency order and skips already published versions only when their tarball integrity matches,
+allowing interrupted releases to resume. It waits for each package to become
+visible before publishing its dependents. npm versions are immutable; fix a published package with a
+new release version. This command does not create GitHub releases or Git tags.

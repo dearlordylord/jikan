@@ -1,0 +1,14 @@
+{
+  "name": "@jikan0/terminal-demo",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node ../tools/build-package.cjs"
+  },
+  "dependencies": {
+    "@jikan0/adapters": "2.0.0",
+    "@jikan0/fsm": "2.0.0",
+    "@jikan0/ui": "2.0.0",
+    "terminal-kit": "3.1.4"
+  }
+}

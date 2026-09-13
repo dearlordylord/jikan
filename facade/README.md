@@ -1,19 +1,16 @@
-Jikan0 strongly typed exercise timer core library
+# jikan0
 
-Consist of object-oriented Timer interface and functional timer finite state machine API under the hood.
+Convenience exports for the timer engine and stateful adapters.
 
-Timer is modeled as a queue data structure with a `step(n: milliseconds)` function over it.
+```ts
+import { empty, push, tick } from 'jikan0';
 
-TODO more docs
+const queued = push([{ kind: 'exercise', duration: 1000 }])(empty);
+if (queued.ok) {
+  const elapsed = tick(400)(queued.state);
+  if (elapsed.ok) console.log(elapsed.state);
+}
+```
 
-# Publishing
-
-Npm package exposed API
-
-`npx nx release p` - will release dependencies
-
-`npx nx build facade`
-
-`node tools/scripts/publish.mjs facade 0.0.4 latest`
-
-used https://github.com/nrwl/nx/issues/4620#issuecomment-1546737883 as build solution for now
+Consumers own state and supply elapsed time. See the [engine](../fsm/README.md)
+and [adapters](../adapters/README.md) for APIs and constraints.

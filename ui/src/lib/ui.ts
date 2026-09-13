@@ -3,7 +3,7 @@ import { push, tick, empty as fsmState0, isEmpty } from '@jikan0/fsm';
 import { lastRNEA, assertRNEA } from '@jikan0/utils';
 import type { QueueItem, TransitionResult, ValidationIssue } from '@jikan0/fsm';
 import { MAX_DURATION, MAX_PROGRAM_STAGES } from '@jikan0/fsm';
-import * as S from '@effect/schema/Schema';
+import * as S from 'effect/Schema';
 
 // TODO program library
 // TODO fp eslint
@@ -132,14 +132,11 @@ type RunningStateRunning = typeof RUNNING_STATE_RUNNING;
 type RunningStatePaused = typeof RUNNING_STATE_PAUSED;
 type RunningStateStopped = typeof RUNNING_STATE_STOPPED;
 
-const RUNNING_STATES = [
-  RUNNING_STATE_RUNNING,
-  RUNNING_STATE_PAUSED,
-  RUNNING_STATE_STOPPED,
-  RUNNING_STATE_COMPLETED,
-] as const;
-
-type RunningState = (typeof RUNNING_STATES)[number];
+type RunningState =
+  | typeof RUNNING_STATE_RUNNING
+  | typeof RUNNING_STATE_PAUSED
+  | typeof RUNNING_STATE_STOPPED
+  | typeof RUNNING_STATE_COMPLETED;
 
 type Button<E> =
   | {
@@ -175,28 +172,28 @@ export type State<M extends Mode = Mode> = {
     }
 );
 
-export const SimpleModeSettings = S.struct({
-  exerciseTimeMs: S.bigint,
-  restTimeMs: S.bigint,
-  rounds: S.bigint,
+export const SimpleModeSettings = S.Struct({
+  exerciseTimeMs: S.BigIntFromSelf,
+  restTimeMs: S.BigIntFromSelf,
+  rounds: S.BigIntFromSelf,
 });
 
 export type ModeSelectorSettingsValue = {
   mode: Mode;
 } & ({
   mode: SimpleMode;
-} & S.Schema.To<typeof SimpleModeSettings>);
+} & S.Schema.Type<typeof SimpleModeSettings>);
 
-export const ModesSettings = S.struct({
+export const ModesSettings = S.Struct({
   simple: SimpleModeSettings,
 });
 
-export const ModeSettings = S.struct({
-  selected: S.literal(...MODES),
+export const ModeSettings = S.Struct({
+  selected: S.Literal(...MODES),
   settings: ModesSettings,
 });
 
-export type ModeSettings = S.Schema.To<typeof ModeSettings>;
+export type ModeSettings = S.Schema.Type<typeof ModeSettings>;
 
 export type ModesSettings = Readonly<{
   [k in Mode]: Readonly<
@@ -208,9 +205,9 @@ export type ModesSettings = Readonly<{
     >
   >;
 }> &
-  S.Schema.To<typeof ModeSettings>;
+  S.Schema.Type<typeof ModeSettings>;
 
-export type ModeSelectorState = Readonly<S.Schema.To<typeof ModeSettings>>;
+export type ModeSelectorState = Readonly<S.Schema.Type<typeof ModeSettings>>;
 
 export const modeSelectorState0 = Object.freeze({
   selected: DEFAULT_MODE,
@@ -609,14 +606,14 @@ export const reduce =
           action._tag === 'SimpleModeRoundsSelected'
             ? 'rounds'
             : action._tag === 'SimpleModeExerciseTimeSelected'
-            ? 'exerciseTimeMs'
-            : 'restTimeMs';
+              ? 'exerciseTimeMs'
+              : 'restTimeMs';
         const input =
           action._tag === 'SimpleModeRoundsSelected'
             ? action.rounds
             : action._tag === 'SimpleModeExerciseTimeSelected'
-            ? action.exerciseTimeMs
-            : action.restTimeMs;
+              ? action.exerciseTimeMs
+              : action.restTimeMs;
         const value = numeric(
           input,
           field,

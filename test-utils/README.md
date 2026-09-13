@@ -1,11 +1,13 @@
-# test-utils
+# Test utilities
 
-This library was generated with [Nx](https://nx.dev).
+A reusable example workout for timer consumers and tests.
 
-## Building
+```ts
+import { BASIC_EXERCISE_PROGRAM } from '@jikan0/test-utils';
+import { empty, push } from '@jikan0/fsm';
 
-Run `nx build test-utils` to build the library.
+const result = push(BASIC_EXERCISE_PROGRAM)(empty);
+```
 
-## Running unit tests
-
-Run `nx test test-utils` to execute the unit tests via [Jest](https://jestjs.io).
+Durations are milliseconds; the exported program is readonly. See the
+[engine](../fsm/README.md) and [development](../docs/development.md).

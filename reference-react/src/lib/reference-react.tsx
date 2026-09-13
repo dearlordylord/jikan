@@ -81,10 +81,10 @@ export function ReferenceReact({
         {view.running === 'stopped'
           ? 'Ready'
           : view.running === 'completed'
-          ? 'Completed'
-          : view.running === 'paused'
-          ? 'Paused'
-          : 'Running'}
+            ? 'Completed'
+            : view.running === 'paused'
+              ? 'Paused'
+              : 'Running'}
         {stats && (
           <span>
             :{' '}

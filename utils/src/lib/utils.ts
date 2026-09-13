@@ -68,7 +68,6 @@ const cyrb53 = (str: string, seed = 0) => {
 export const stringHashCode = cyrb53;
 
 export const mapSnd: <B, C>(f: (e: B) => C) => <A>(fa: [A, B]) => [A, C] =
-  (f) => (fa) =>
-    [fst(fa), f(snd(fa))];
+  (f) => (fa) => [fst(fa), f(snd(fa))];
 export const fst = <A, B>(t: readonly [A, B]): A => t[0];
 export const snd = <A, B>(t: readonly [A, B]): B => t[1];
