@@ -133,3 +133,21 @@ it('rejected settings and clock samples produce no successful transition effects
   expect(screen.getByRole('status').textContent).toContain('3000 ms remaining');
   expect(onTransition).not.toHaveBeenCalled();
 });
+
+it('retains the running workout when Stop rejects its custom clock baseline', () => {
+  const clock = fixture();
+  const onTransition = jest.fn();
+  render(<ReferenceReact timing={clock.timing} onTransition={onTransition} />);
+  setupProgram();
+  clock.setNow(Number.NaN);
+  fireEvent.click(screen.getByText('Stop'));
+  expect(screen.getByRole('status').textContent).toContain(
+    'Running: Preparation'
+  );
+  expect(screen.getByRole('alert')).toBeTruthy();
+  expect(onTransition).not.toHaveBeenCalled();
+  clock.setNow(3000);
+  act(() => assertExists(assertExists(clock.callbacks[0]))());
+  expect(screen.getByRole('status').textContent).toContain('Round 1 of 3');
+  expect(onTransition).toHaveBeenCalledTimes(1);
+});

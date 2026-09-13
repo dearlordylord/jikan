@@ -65,9 +65,8 @@ export function ReferenceReact({
   ];
   const start = () => {
     // Invalid drafts retain the valid settings; require correction before starting.
-    if (issues.length === 0 && clock.restart().ok) {
+    if (issues.length === 0 && clock.onAction(ui.StartClickedEvent()).ok) {
       setDrafts({});
-      dispatch(ui.StartClickedEvent());
     }
   };
   const stats =
@@ -102,26 +101,17 @@ export function ReferenceReact({
         </button>
       )}
       {view.pauseButton.active && (
-        <button
-          onClick={() => {
-            if (clock.pause().ok) dispatch(ui.PauseClickedEvent());
-          }}
-        >
+        <button onClick={() => clock.onAction(ui.PauseClickedEvent())}>
           Pause
         </button>
       )}
       {view.continueButton.active && (
-        <button onClick={() => dispatch(ui.ContinueClickedEvent())}>
+        <button onClick={() => clock.onAction(ui.ContinueClickedEvent())}>
           Continue
         </button>
       )}
       {view.stopButton.active && (
-        <button
-          onClick={() => {
-            clock.restart();
-            dispatch(ui.StopClickedEvent());
-          }}
-        >
+        <button onClick={() => clock.onAction(ui.StopClickedEvent())}>
           Stop
         </button>
       )}

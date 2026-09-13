@@ -72,7 +72,6 @@ const showRunningStage = (uiState: ui.State) =>
     )
     .exhaustive();
 
-
 const Controls = ({
   onAction,
   uiState,
@@ -114,14 +113,17 @@ const Settings_ = ({
 }) => {
   const view = useMemo(() => ui.view(uiState), [uiState]);
 
-
   const mode = view.modeSelector.value.mode;
   return (
     <View>
       {view.running === 'stopped' || view.running === 'completed'
         ? ((value, actions) => (
             <View>
-              <Settings settings={view.modeSelector.value} actions={view.modeSelector.actions} onAction={onAction} />
+              <Settings
+                settings={view.modeSelector.value}
+                actions={view.modeSelector.actions}
+                onAction={onAction}
+              />
 
               {/*<label>*/}
               {/*  exercise time ms:{' '}*/}
@@ -169,11 +171,7 @@ function ReactNativeTimer_() {
       if (result.ok && action._tag === 'TimePassed') onTick(result.state);
     },
   });
-  const onAction = (action: ui.Action) => {
-    if (action._tag === 'PauseClicked' && !clock.pause().ok) return;
-    if ((action._tag === 'StopClicked' || action._tag === 'StartClicked') && !clock.restart().ok) return;
-    dispatch(action);
-  };
+  const onAction = clock.onAction;
   return (
     <View style={{ justifyContent: 'center', flex: 1 }}>
       {showRunningStage(uiState)}

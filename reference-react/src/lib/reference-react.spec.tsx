@@ -6,6 +6,10 @@ jest.mock('@jikan0/react-time-gremlin', () => ({
   useTimeGremlin: ({ dispatch }: { dispatch: (action: ui.Action) => void }) => {
     advance = dispatch;
     return {
+      onAction: (action: ui.Action) => {
+        dispatch(action);
+        return { ok: true };
+      },
       flush: () => ({ ok: true }),
       pause: () => ({ ok: true }),
       restart: () => ({ ok: true }),

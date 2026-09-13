@@ -199,3 +199,48 @@ it('rejects scheduler delays beyond the platform timer bound', () => {
   ]);
   interval.mockRestore();
 });
+
+it('shares control boundaries, orders pause catch-up, and rejects invalid control clocks', () => {
+  let sample = 0;
+  const dispatch = jest.fn();
+  const now = () => sample;
+  const schedule = () => () => undefined;
+  const { result } = renderHook(() =>
+    useTimeGremlin({
+      uiState: ui.state0,
+      setUiState: jest.fn(),
+      dispatch,
+      now,
+      schedule,
+    })
+  );
+  act(() => {
+    sample = Number.NaN;
+    expect(result.current.onAction(ui.StartClickedEvent()).ok).toBe(false);
+  });
+  expect(dispatch).not.toHaveBeenCalled();
+  act(() => {
+    sample = 0;
+    result.current.onAction(ui.StartClickedEvent());
+  });
+  act(() => {
+    sample = Number.NaN;
+    expect(result.current.onAction(ui.StopClickedEvent()).ok).toBe(false);
+    expect(result.current.onAction(ui.PauseClickedEvent()).ok).toBe(false);
+  });
+  expect(dispatch.mock.calls).toEqual([[ui.StartClickedEvent()]]);
+  act(() => {
+    sample = 3100;
+    result.current.onAction(ui.PauseClickedEvent());
+  });
+  expect(dispatch.mock.calls).toEqual([
+    [ui.StartClickedEvent()],
+    [ui.TimePassedEvent(BigInt(3100))],
+    [ui.PauseClickedEvent()],
+  ]);
+  act(() => {
+    sample = Number.NaN;
+    expect(result.current.onAction(ui.ContinueClickedEvent()).ok).toBe(false);
+  });
+  expect(dispatch).toHaveBeenCalledTimes(3);
+});

@@ -13,6 +13,14 @@
     "**/*.test.ts",
     "**/*.test.tsx",
     "**/test-setup.ts",
-    "**/test-setup.tsx"
-  ]
+    "**/test-setup.tsx",
+    "**/*.typecheck.ts"
+  ],
+  "tsc-alias": {
+    "replacers": {
+      "base-url": {
+        "enabled": false
+      }
+    }
+  }
 }

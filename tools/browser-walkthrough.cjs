@@ -7,19 +7,26 @@ const assert = require('node:assert/strict');
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
   const errors = [];
-  page.on('pageerror', error => errors.push(error.message));
+  page.on('pageerror', (error) => errors.push(error.message));
   const status = page.getByRole('status');
-  const waitStatus = text => page.waitForFunction(
-    value => document.querySelector('[role=status]')?.textContent.includes(value),
-    text,
-    { timeout: 15000 }
-  );
+  const waitStatus = (text) =>
+    page.waitForFunction(
+      (value) =>
+        document.querySelector('[role=status]')?.textContent.includes(value),
+      text,
+      { timeout: 15000 }
+    );
   try {
     await page.goto(process.argv[3] || 'http://localhost:4200');
     await waitStatus('Ready');
     await page.getByLabel('rounds:').fill('0');
     assert.equal(await page.getByRole('alert').count(), 1);
-    assert.equal(await page.getByRole('button', { name: 'Start', exact: true }).isDisabled(), true);
+    assert.equal(
+      await page
+        .getByRole('button', { name: 'Start', exact: true })
+        .isDisabled(),
+      true
+    );
     await page.getByLabel('exercise time ms:').fill('');
     await page.getByLabel('rounds:').fill('2');
     assert.equal(await page.getByRole('alert').count(), 1);
@@ -45,24 +52,46 @@ const assert = require('node:assert/strict');
     await page.getByRole('button', { name: 'Start', exact: true }).click();
     await page.getByRole('button', { name: 'Stop', exact: true }).click();
     await waitStatus('Ready');
-    assert.equal(await page.getByLabel('exercise time ms:').inputValue(), '700');
+    assert.equal(
+      await page.getByLabel('exercise time ms:').inputValue(),
+      '700'
+    );
     await page.getByRole('button', { name: 'Start', exact: true }).click();
     // Block this actual page's event loop across preparation and first exercise.
     await page.evaluate(() => {
       const until = performance.now() + 3800;
-      while (performance.now() < until) { /* deliberate delayed callback */ }
+      while (performance.now() < until) {
+        /* deliberate delayed callback */
+      }
     });
     await waitStatus('Round 1 of 2: rest');
     await waitStatus('Completed');
     assert.deepEqual(errors, []);
-    console.log(JSON.stringify({
-      browser: await browser.version(),
-      passed: ['invalid and incomplete drafts', 'settings lock', 'preparation',
-        'paused progress', 'resume', 'ordinal exercise/rest rounds',
-        'completion versus stop', 'preserved settings', 'delayed callback catch-up'],
-      pageErrors: errors,
-    }, null, 2));
+    console.log(
+      JSON.stringify(
+        {
+          browser: await browser.version(),
+          passed: [
+            'invalid and incomplete drafts',
+            'settings lock',
+            'preparation',
+            'paused progress',
+            'resume',
+            'ordinal exercise/rest rounds',
+            'completion versus stop',
+            'preserved settings',
+            'delayed callback catch-up',
+          ],
+          pageErrors: errors,
+        },
+        null,
+        2
+      )
+    );
   } finally {
     await browser.close();
   }
-})().catch(error => { console.error(error); process.exitCode = 1; });
+})().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

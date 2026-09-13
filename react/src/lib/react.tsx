@@ -1,7 +1,7 @@
 import type { StatefulSimulationOpts } from '@jikan0/adapters';
 import { StatefulSimulation } from '@jikan0/adapters';
 import type { Program, QueueItem } from '@jikan0/fsm';
-import { push, empty } from '@jikan0/fsm';
+import { push, empty, MAX_PROGRAM_STAGES } from '@jikan0/fsm';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 /** Compare ordered stage values directly: sums/hashes lose order and collide. */
@@ -39,6 +39,7 @@ export const makeUseTimer =
     });
     const committedProgram = useRef<readonly QueueItem<Kind>[]>();
     const rejectedProgram = useRef<readonly QueueItem<Kind>[]>();
+    const rejectedOversizedLength = useRef<number>();
     useEffect(() => {
       const unsubscribe = sim.onChange((current) => {
         setSnapshot({ current, running: sim.isRunning() });
@@ -59,6 +60,16 @@ export const makeUseTimer =
       };
     }, [sim]);
     useEffect(() => {
+      if (program.length > MAX_PROGRAM_STAGES) {
+        rejectedProgram.current = undefined;
+        if (rejectedOversizedLength.current !== program.length) {
+          const checked = push(program)(empty);
+          if (!checked.ok) opts?.onValidation?.(checked.issues);
+          rejectedOversizedLength.current = program.length;
+        }
+        return;
+      }
+      rejectedOversizedLength.current = undefined;
       if (
         committedProgram.current &&
         areProgramsEqual(committedProgram.current, program)

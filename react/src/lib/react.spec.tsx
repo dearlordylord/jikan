@@ -1,5 +1,6 @@
 import { assertExists } from '@jikan0/utils';
 import type { QueueItem } from '@jikan0/fsm';
+import { MAX_PROGRAM_STAGES } from '@jikan0/fsm';
 import { act, renderHook } from '@testing-library/react';
 
 import { useTimer, makeUseTimer } from './react';
@@ -193,4 +194,33 @@ it('preserves accepted progress when rejected replacement is followed by an equi
   expect(result.current.current).toEqual({ kind: 'a', duration: 600 });
   act(() => jest.advanceTimersByTime(100));
   expect(result.current.current?.duration).toBe(500);
+});
+
+it('rejects oversized programs without traversing or copying their stages and retains the accepted snapshot', () => {
+  const onValidation = jest.fn();
+  const timer = makeUseTimer({ onValidation });
+  const accepted: Program = [{ kind: 'accepted', duration: 1000 }];
+  const { result, rerender } = renderHook(
+    (program: Program) => timer(program),
+    { initialProps: accepted }
+  );
+  const oversized: [QueueItem, ...QueueItem[]] = [
+    { kind: 'invalid', duration: -1 },
+  ];
+  Object.defineProperty(oversized, 'length', { value: MAX_PROGRAM_STAGES + 1 });
+  const stage = jest.fn(() => ({ kind: 'invalid', duration: -1 }));
+  Object.defineProperty(oversized, 0, { get: stage });
+  const map = jest.spyOn(oversized, 'map');
+  rerender(oversized);
+  const another: [QueueItem, ...QueueItem[]] = [
+    { kind: 'another', duration: 1 },
+  ];
+  Object.defineProperty(another, 'length', { value: MAX_PROGRAM_STAGES + 1 });
+  rerender(another);
+  expect(stage).not.toHaveBeenCalled();
+  expect(map).not.toHaveBeenCalled();
+  expect(onValidation).toHaveBeenCalledTimes(1);
+  expect(result.current.current).toEqual(accepted[0]);
+  rerender([{ kind: 'accepted', duration: 1000 }]);
+  expect(result.current.current).toEqual(accepted[0]);
 });

@@ -20,7 +20,7 @@ export type TimeGremlinOptions = {
 };
 
 /**
- * Thin timing integration. Call pause() before committing a PauseClicked action.
+ * Thin timing integration. onAction applies clock boundaries before consumer dispatch.
  * The clock defaults to performance.now; OS-sleep inclusion is not portable.
  * Delayed callbacks catch up, but suspended/discarded pages cannot perform effects.
  */
@@ -34,17 +34,16 @@ export const useTimeGremlin = (options: TimeGremlinOptions) => {
     currentState.current = uiState;
   });
   const driverRef = useRef<ReturnType<typeof createElapsedDriver>>();
+  const actionRef = useRef<(action: ui.Action) => void>(() => undefined);
   const inputRef = useRef<(milliseconds: bigint) => void>(() => undefined);
   useLayoutEffect(() => {
-    inputRef.current = (milliseconds) => {
+    actionRef.current = (action) => {
       const current = latest.current;
       if (current.dispatch) {
-        current.dispatch(ui.TimePassedEvent(milliseconds));
+        current.dispatch(action);
         return;
       }
-      const result = ui.reduce(ui.TimePassedEvent(milliseconds))(
-        currentState.current
-      );
+      const result = ui.reduce(action)(currentState.current);
       if (!result.ok) {
         current.onIssues?.(result.issues);
         return;
@@ -52,8 +51,10 @@ export const useTimeGremlin = (options: TimeGremlinOptions) => {
       currentState.current = result.state;
       current.setUiState(result.state);
       if (result.effects.length) current.onTransition?.(result.effects);
-      current.onTick?.(result.state);
+      if (action._tag === 'TimePassed') current.onTick?.(result.state);
     };
+    inputRef.current = (milliseconds) =>
+      actionRef.current(ui.TimePassedEvent(milliseconds));
   });
   // Scheduling depends on configuration/session status, never callback/state identity.
   useEffect(() => {
@@ -109,6 +110,41 @@ export const useTimeGremlin = (options: TimeGremlinOptions) => {
   return useMemo(() => {
     const idle: ElapsedDriverResult = { ok: true };
     return {
+      /** Apply clock boundaries before dispatching to the consumer's state owner. */
+      onAction: (action: ui.Action): ElapsedDriverResult => {
+        const driver = driverRef.current;
+        if (
+          !driver &&
+          (action._tag === 'StartClicked' || action._tag === 'ContinueClicked')
+        )
+          return {
+            ok: false,
+            issues: [
+              {
+                path: 'clock',
+                code: 'unavailable-clock',
+                message: 'The timing driver is unavailable.',
+              },
+            ],
+          };
+        const boundary =
+          action._tag === 'PauseClicked'
+            ? driver?.pause() ?? idle
+            : action._tag === 'StartClicked' || action._tag === 'StopClicked'
+            ? driver?.restart() ?? idle
+            : idle;
+        if (!boundary.ok) return boundary;
+        if (
+          action._tag === 'StartClicked' ||
+          action._tag === 'ContinueClicked'
+        ) {
+          const started = driver?.start() ?? idle;
+          if (!started.ok) return started;
+        }
+        if (action._tag === 'StopClicked') driver?.suspend();
+        actionRef.current(action);
+        return idle;
+      },
       flush: () => driverRef.current?.flush() ?? idle,
       pause: () => driverRef.current?.pause() ?? idle,
       restart: () => driverRef.current?.restart() ?? idle,

@@ -55,7 +55,7 @@ describe('fsm properties', () => {
     it('partitioned elapsed equals one update, preserving ordered consumed stages', () => {
       fc.assert(
         fc.property(stages, partitions, (program, elapsed) => {
-          const initial = push(program as unknown as Program)(empty).state;
+          const initial = push(assertRNEA(program))(empty).state;
           const combined = tick(elapsed.reduce((a, b) => a + b, 0))(initial);
           let state = initial;
           const facts: QueueItem[] = [];

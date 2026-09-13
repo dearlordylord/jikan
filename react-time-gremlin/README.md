@@ -8,10 +8,10 @@ successful effects. When using the `setUiState` fallback instead of `dispatch`,
 provide `onTransition(completedStages)` to observe those ordered facts. A supplied
 `dispatch` owns effect delivery itself. Keep effects outside rendering and React state updater functions.
 
-The returned `pause()` flushes elapsed running time; call it before dispatching
-`PauseClickedEvent`, and dispatch only when its result is successful. Resume starts
-a fresh clock baseline. The `restart()` boundary discards fractional carry for a new
-session. `advance(bigint)` and explicit `appetite` provide deterministic input.
+Use the returned `onAction(action)` for workout controls: it flushes before pause,
+validates start/resume baselines, and resets carry for start/stop before dispatching.
+Rejected clock boundaries preserve workout state. `advance(bigint)` and explicit
+`appetite` provide deterministic input.
 
 Inject `now` and `schedule` for tests or alternate environments. `schedule(wake)`
 returns cancellation; callback cadence controls update opportunities, not timer

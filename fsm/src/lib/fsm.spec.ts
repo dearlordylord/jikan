@@ -1,4 +1,4 @@
-import { assertExists } from '@jikan0/utils';
+import { assertExists, assertRNEA } from '@jikan0/utils';
 import type { QueueItem, State, Program } from './fsm';
 import {
   currentNE,
@@ -31,33 +31,6 @@ describe('fsm', () => {
           },
         ],
       } satisfies State);
-    });
-    it('type is extendable', () => {
-      const s0 = empty as State<'a' | 'b' | 'c'>;
-      const s1 = push([
-        {
-          kind: 'a',
-          duration: 1,
-        },
-      ])(s0).state;
-      type B1 = typeof s1 extends State<'a' | 'b' | 'c'> ? true : false;
-      type B2 = typeof s1 extends State<'a' | 'b'> ? true : false;
-      type B3 = typeof s1 extends State<'d'> ? true : false;
-      const _a: B1 = true;
-      // @ts-expect-error checks the assertion itself
-      const _a2: B1 = false;
-      const _b: B2 = false;
-      const _c: B3 = false;
-      expect([_a, _b, _c]).toEqual([true, false, false]);
-    });
-    it('no extra types leak into it', () => {
-      push([
-        {
-          kind: 'd',
-          duration: 1,
-        },
-        // @ts-expect-error type 'd' won't be accepted here
-      ])(empty as State<'a' | 'b' | 'c'>);
     });
     it.each([0, -1, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])(
       'rejects duration %s without effects',
@@ -105,17 +78,15 @@ describe('fsm', () => {
       }
     );
     it('rejects oversized queues before reading stage content', () => {
-      const stages = new Array(10001);
-      expect(push(stages as unknown as Program)(empty).ok).toBe(false);
+      const stages: QueueItem[] = new Array<QueueItem>(10001);
+      expect(push(assertRNEA(stages))(empty).ok).toBe(false);
     });
     it('crosses bounded programs without recursion and retains ordered facts', () => {
       const program = Array.from({ length: 10000 }, (_, index) => ({
         kind: String(index),
         duration: 1,
       }));
-      const result = tick(10000)(
-        push(program as unknown as Program)(empty).state
-      );
+      const result = tick(10000)(push(assertRNEA(program))(empty).state);
       expect(result.state).toBe(empty);
       expect(result.effects).toEqual(program);
     });
