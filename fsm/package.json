@@ -1,6 +1,6 @@
 {
   "name": "@jikan0/fsm",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "type": "commonjs",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -34,6 +34,6 @@
     "node": ">=24"
   },
   "dependencies": {
-    "@jikan0/utils": "2.0.0"
+    "@jikan0/utils": "2.0.1"
   }
 }

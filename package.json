@@ -2,7 +2,7 @@
   "name": "@jikan0/source",
   "license": "MIT",
   "private": true,
-  "version": "2.0.0",
+  "version": "2.0.1",
   "packageManager": "npm@11.19.0",
   "engines": {
     "node": ">=24"
